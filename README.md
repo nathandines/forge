@@ -12,3 +12,31 @@ state of the stack deployment.
 ## Features
 
 Features go here
+
+## Getting Started
+
+### Installation
+
+```sh
+go get -u github.com/nathandines/stack
+```
+
+### Development
+
+#### Build
+
+```sh
+make
+```
+
+#### Test
+
+```sh
+make test
+```
+
+#### Clean workspace
+
+```sh
+make clean
+```
