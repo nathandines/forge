@@ -11,6 +11,7 @@ type Stack struct {
 	ParametersFile  string
 	ProjectManifest string
 	RoleName        string
+	StackID         string
 	StackName       string
 	StackPolicyFile string
 	TemplateFile    string
@@ -23,4 +24,17 @@ func init() {
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 	cfn = cloudformation.New(sess)
+}
+
+// GetStackID populates the StackID for this object from the existing stack
+// found in the environment
+func (s *Stack) GetStackID() (err error) {
+	if stackOut, err := cfn.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: &s.StackName,
+	}); err == nil {
+		s.StackID = *stackOut.Stacks[0].StackId
+	} else {
+		return err
+	}
+	return
 }
