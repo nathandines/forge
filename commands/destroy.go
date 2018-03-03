@@ -34,12 +34,12 @@ var destroyCmd = &cobra.Command{
 					statusReason = "<undefined>"
 				}
 				fmt.Printf(
-					"%s: Logical-ID: %s, Phys-ID: %s, Res-Type: %s, Status: %s, Reason: %s\n",
+					"%s: %s; %s; %s; %s; Reason: %s\n",
 					e.Timestamp.Local(),
+					*e.ResourceStatus,
+					*e.ResourceType,
 					*e.LogicalResourceId,
 					*e.PhysicalResourceId,
-					*e.ResourceType,
-					*e.ResourceStatus,
 					statusReason,
 				)
 			}
@@ -54,7 +54,6 @@ var destroyCmd = &cobra.Command{
 				}
 			}
 			time.Sleep(5 * time.Second)
-
 		}
 	},
 }
