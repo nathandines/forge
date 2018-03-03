@@ -20,7 +20,7 @@ func (t byTime) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
 func (s *Stack) Events(startTime, endTime *time.Time) (events []*cloudformation.StackEvent, err error) {
 	if err := cfn.DescribeStackEventsPages(
 		&cloudformation.DescribeStackEventsInput{
-			StackName: &s.StackName,
+			StackName: &s.StackID,
 		}, func(page *cloudformation.DescribeStackEventsOutput, lastPage bool) bool {
 			for _, e := range page.StackEvents {
 				if e.Timestamp.UnixNano() >= startTime.UnixNano() &&
