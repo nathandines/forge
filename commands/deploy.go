@@ -1,8 +1,7 @@
 package commands
 
 import (
-	"fmt"
-	"os"
+	"log"
 
 	"github.com/spf13/cobra"
 )
@@ -12,8 +11,7 @@ var deployCmd = &cobra.Command{
 	Short: "Deploy a CloudFormation Stack",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := stackResource.Deploy(); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			log.Fatal(err)
 		}
 	},
 }

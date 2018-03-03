@@ -16,7 +16,9 @@ var destroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// var events []*cloudformation.StackEvent
 		eventStart := time.Now()
-		stackResource.Destroy()
+		if err := stackResource.Destroy(); err != nil {
+			log.Fatal(err)
+		}
 		for {
 			eventEnd := time.Now()
 			bunch, err := stackResource.Events(&eventStart, &eventEnd)
