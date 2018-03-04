@@ -14,19 +14,23 @@ var destroyCmd = &cobra.Command{
 	Use:   "destroy",
 	Short: "Destroy a CloudFormation Stack",
 	Run: func(cmd *cobra.Command, args []string) {
-		// var events []*cloudformation.StackEvent
-		eventStart := time.Now()
+		after, err := stackResource.GetLastEventTime()
+		if err != nil {
+			log.Fatal(err)
+		}
 		if err := stackResource.Destroy(); err != nil {
 			log.Fatal(err)
 		}
 		for {
-			eventEnd := time.Now()
-			bunch, err := stackResource.Events(&eventStart, &eventEnd)
+			// Refresh Stack State
+			if err := stackResource.GetStackInfo(); err != nil {
+				log.Fatal(err)
+			}
+			bunch, err := stackResource.Events(after)
 			if err != nil {
 				log.Fatal(err)
 			}
 			for _, e := range bunch {
-				// events = append(events, e)
 				var statusReason string
 				if e.ResourceStatusReason != nil {
 					statusReason = *e.ResourceStatusReason
@@ -43,16 +47,18 @@ var destroyCmd = &cobra.Command{
 					statusReason,
 				)
 			}
-			eventStart = eventEnd
 
-			if len(bunch) > 0 && *bunch[len(bunch)-1].PhysicalResourceId == stackResource.StackID {
-				switch *bunch[len(bunch)-1].ResourceStatus {
-				case cloudformation.StackStatusDeleteComplete:
-					os.Exit(0)
-				case cloudformation.StackStatusDeleteFailed:
-					os.Exit(1)
-				}
+			if len(bunch) > 0 {
+				after = bunch[len(bunch)-1].Timestamp
 			}
+
+			switch *stackResource.StackInfo.StackStatus {
+			case cloudformation.StackStatusDeleteComplete:
+				os.Exit(0)
+			case cloudformation.StackStatusDeleteFailed:
+				os.Exit(1)
+			}
+
 			time.Sleep(5 * time.Second)
 		}
 	},

@@ -11,7 +11,7 @@ type Stack struct {
 	ParametersFile  string
 	ProjectManifest string
 	RoleName        string
-	StackID         string
+	StackInfo       *cloudformation.Stack
 	StackName       string
 	StackPolicyFile string
 	TemplateFile    string
@@ -26,13 +26,19 @@ func init() {
 	cfn = cloudformation.New(sess)
 }
 
-// GetStackID populates the StackID for this object from the existing stack
+// GetStackInfo populates the StackInfo for this object from the existing stack
 // found in the environment
-func (s *Stack) GetStackID() (err error) {
+func (s *Stack) GetStackInfo() (err error) {
+	var stackName *string
+	if s.StackInfo != nil {
+		stackName = s.StackInfo.StackId
+	} else {
+		stackName = &s.StackName
+	}
 	if stackOut, err := cfn.DescribeStacks(&cloudformation.DescribeStacksInput{
-		StackName: &s.StackName,
+		StackName: stackName,
 	}); err == nil {
-		s.StackID = *stackOut.Stacks[0].StackId
+		s.StackInfo = stackOut.Stacks[0]
 	} else {
 		return err
 	}
