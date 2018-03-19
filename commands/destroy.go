@@ -31,11 +31,9 @@ var destroyCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 			for _, e := range bunch {
-				var statusReason string
+				statusReason := "<undefined>"
 				if e.ResourceStatusReason != nil {
 					statusReason = *e.ResourceStatusReason
-				} else {
-					statusReason = "<undefined>"
 				}
 				fmt.Printf(
 					"%s: %s; %s; %s; %s; Reason: %s\n",

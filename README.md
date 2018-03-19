@@ -11,7 +11,8 @@ state of the stack deployment.
 
 ## Features
 
-Features go here
+- Exit codes based on stack status
+- Stack event output on the command line
 
 ## Getting Started
 
