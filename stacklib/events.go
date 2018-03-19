@@ -9,21 +9,22 @@ import (
 
 type byTime []*cloudformation.StackEvent
 
-func (t byTime) Len() int { return len(t) }
-func (t byTime) Less(i, j int) bool {
-	return t[i].Timestamp.UnixNano() < t[j].Timestamp.UnixNano()
-}
-func (t byTime) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
+func (t byTime) Len() int           { return len(t) }
+func (t byTime) Less(i, j int) bool { return t[i].Timestamp.UnixNano() < t[j].Timestamp.UnixNano() }
+func (t byTime) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
 
 // Events will get all events for a stack and sort them in chronological order
 // within a time range
 func (s *Stack) Events(after *time.Time) (events []*cloudformation.StackEvent, err error) {
-	if err := s.GetStackInfo(); err != nil {
-		return events, err
+	var stackName *string
+	if s.StackID != "" {
+		stackName = &s.StackID
+	} else {
+		stackName = &s.StackName
 	}
 	if err := cfn.DescribeStackEventsPages(
 		&cloudformation.DescribeStackEventsInput{
-			StackName: s.StackInfo.StackId,
+			StackName: stackName,
 		}, func(page *cloudformation.DescribeStackEventsOutput, lastPage bool) bool {
 			for _, e := range page.StackEvents {
 				if e.Timestamp.UnixNano() > after.UnixNano() {

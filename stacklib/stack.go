@@ -3,6 +3,7 @@ package stacklib
 import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
 // Stack represents the attributes of a stack deployment, including the AWS
@@ -11,13 +12,14 @@ type Stack struct {
 	ParametersFile  string
 	ProjectManifest string
 	RoleName        string
+	StackID         string
 	StackInfo       *cloudformation.Stack
 	StackName       string
 	StackPolicyFile string
 	TemplateFile    string
 }
 
-var cfn *cloudformation.CloudFormation // CloudFormation service
+var cfn cloudformationiface.CloudFormationAPI // CloudFormation service
 
 func init() {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
@@ -39,6 +41,7 @@ func (s *Stack) GetStackInfo() (err error) {
 		StackName: stackName,
 	}); err == nil {
 		s.StackInfo = stackOut.Stacks[0]
+		s.StackID = *s.StackInfo.StackId
 	} else {
 		return err
 	}
