@@ -4,47 +4,116 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
 type mockEvents struct {
 	cloudformationiface.CloudFormationAPI
-	StackEventsOutput *cloudformation.DescribeStackEventsOutput
+	stackEventsOutput cloudformation.DescribeStackEventsOutput
 }
 
 func (m mockEvents) DescribeStackEventsPages(input *cloudformation.DescribeStackEventsInput, function func(*cloudformation.DescribeStackEventsOutput, bool) bool) error {
-	function(m.StackEventsOutput, true)
+	function(&m.stackEventsOutput, true)
 	return nil
+}
+
+func TestListEvents(t *testing.T) {
+	cases := []struct {
+		after    time.Time
+		expected []*cloudformation.StackEvent
+		resp     cloudformation.DescribeStackEventsOutput
+	}{
+		{
+			after: time.Unix(150, 0),
+			resp: cloudformation.DescribeStackEventsOutput{
+				StackEvents: []*cloudformation.StackEvent{
+					{Timestamp: aws.Time(time.Unix(300, 0))},
+					{Timestamp: aws.Time(time.Unix(100, 0))},
+					{Timestamp: aws.Time(time.Unix(200, 0))},
+				},
+			},
+			expected: []*cloudformation.StackEvent{
+				{Timestamp: aws.Time(time.Unix(200, 0))},
+				{Timestamp: aws.Time(time.Unix(300, 0))},
+			},
+		},
+		{
+			after: time.Unix(100, 0),
+			resp: cloudformation.DescribeStackEventsOutput{
+				StackEvents: []*cloudformation.StackEvent{
+					{Timestamp: aws.Time(time.Unix(300, 0))},
+					{Timestamp: aws.Time(time.Unix(100, 0))},
+					{Timestamp: aws.Time(time.Unix(200, 0))},
+				},
+			},
+			expected: []*cloudformation.StackEvent{
+				{Timestamp: aws.Time(time.Unix(200, 0))},
+				{Timestamp: aws.Time(time.Unix(300, 0))},
+			},
+		},
+		{
+			after: time.Unix(50, 0),
+			resp: cloudformation.DescribeStackEventsOutput{
+				StackEvents: []*cloudformation.StackEvent{
+					{Timestamp: aws.Time(time.Unix(300, 0))},
+					{Timestamp: aws.Time(time.Unix(100, 0))},
+					{Timestamp: aws.Time(time.Unix(200, 0))},
+				},
+			},
+			expected: []*cloudformation.StackEvent{
+				{Timestamp: aws.Time(time.Unix(100, 0))},
+				{Timestamp: aws.Time(time.Unix(200, 0))},
+				{Timestamp: aws.Time(time.Unix(300, 0))},
+			},
+		},
+		{
+			after: time.Unix(350, 0),
+			resp: cloudformation.DescribeStackEventsOutput{
+				StackEvents: []*cloudformation.StackEvent{
+					{Timestamp: aws.Time(time.Unix(300, 0))},
+					{Timestamp: aws.Time(time.Unix(100, 0))},
+					{Timestamp: aws.Time(time.Unix(200, 0))},
+				},
+			},
+			expected: []*cloudformation.StackEvent{},
+		},
+	}
+	for i, c := range cases {
+		cfn = mockEvents{stackEventsOutput: c.resp}
+
+		s := Stack{}
+		events, err := s.ListEvents(&c.after)
+		if err != nil {
+			t.Fatalf("%d, unexpected error, %v", i, err)
+		}
+		for j, event := range events {
+			if a, e := *event.Timestamp, *c.expected[j].Timestamp; a != e {
+				t.Errorf("%d, expected %v event, got %v", i, e, a)
+			}
+		}
+	}
 }
 
 func TestGetLastEventTime(t *testing.T) {
 	cases := []struct {
-		resp     []time.Time
+		resp     cloudformation.DescribeStackEventsOutput
 		expected time.Time
 	}{
 		{
-			resp: []time.Time{
-				time.Unix(100, 0),
-				time.Unix(300, 0),
-				time.Unix(200, 0),
+			resp: cloudformation.DescribeStackEventsOutput{
+				StackEvents: []*cloudformation.StackEvent{
+					{Timestamp: aws.Time(time.Unix(100, 0))},
+					{Timestamp: aws.Time(time.Unix(300, 0))},
+					{Timestamp: aws.Time(time.Unix(200, 0))},
+				},
 			},
 			expected: time.Unix(300, 0),
 		},
 	}
 	for i, c := range cases {
-		var stackEvents []*cloudformation.StackEvent
-		for i := range c.resp {
-			event := &cloudformation.StackEvent{
-				Timestamp: &c.resp[i],
-			}
-			stackEvents = append(stackEvents, event)
-		}
-		cfn = mockEvents{
-			StackEventsOutput: &cloudformation.DescribeStackEventsOutput{
-				StackEvents: stackEvents,
-			},
-		}
+		cfn = mockEvents{stackEventsOutput: c.resp}
 
 		s := Stack{}
 		result, err := s.GetLastEventTime()
