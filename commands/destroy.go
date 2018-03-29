@@ -26,7 +26,7 @@ var destroyCmd = &cobra.Command{
 			if err := stackResource.GetStackInfo(); err != nil {
 				log.Fatal(err)
 			}
-			bunch, err := stackResource.Events(after)
+			bunch, err := stackResource.ListEvents(after)
 			if err != nil {
 				log.Fatal(err)
 			}
