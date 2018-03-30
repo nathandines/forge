@@ -39,18 +39,20 @@ func (s *Stack) GetStackInfo() (err error) {
 	} else {
 		return errorNoStackNameOrID
 	}
-	if stackOut, err := cfn.DescribeStacks(&cloudformation.DescribeStacksInput{
-		StackName: stackName,
-	}); err == nil {
-		s.StackInfo = stackOut.Stacks[0]
-		if s.StackName == "" {
-			s.StackName = *s.StackInfo.StackName
-		}
-		if s.StackID == "" {
-			s.StackID = *s.StackInfo.StackId
-		}
-	} else {
+	stackOut, err := cfn.DescribeStacks(
+		&cloudformation.DescribeStacksInput{
+			StackName: stackName,
+		},
+	)
+	if err != nil {
 		return err
+	}
+	s.StackInfo = stackOut.Stacks[0]
+	if s.StackName == "" {
+		s.StackName = *s.StackInfo.StackName
+	}
+	if s.StackID == "" {
+		s.StackID = *s.StackInfo.StackId
 	}
 	return
 }

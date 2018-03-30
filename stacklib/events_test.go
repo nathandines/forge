@@ -107,6 +107,14 @@ func TestListEvents(t *testing.T) {
 	}
 }
 
+func TestListEventsNoStackID(t *testing.T) {
+	s := Stack{}
+
+	if _, err := s.ListEvents(aws.Time(time.Unix(0, 0))); err == nil {
+		t.Errorf("expected error, got success")
+	}
+}
+
 func TestGetLastEventTime(t *testing.T) {
 	cases := []struct {
 		resp     cloudformation.DescribeStackEventsOutput
