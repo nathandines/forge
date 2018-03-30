@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -22,22 +20,14 @@ var destroyCmd = &cobra.Command{
 		if err := stackResource.Destroy(); err != nil {
 			log.Fatal(err)
 		}
+
 		for {
 			// Refresh Stack State
 			if err := stackResource.GetStackInfo(); err != nil {
 				log.Fatal(err)
 			}
-			bunch, err := stackResource.ListEvents(after)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for _, e := range bunch {
-				jsonData, err := json.MarshalIndent(*e, "", "  ")
-				if err != nil {
-					log.Fatal(err)
-				}
-				fmt.Println(string(jsonData))
-			}
+
+			printStackEvents(&stackResource, after)
 
 			switch *stackResource.StackInfo.StackStatus {
 			case cloudformation.StackStatusDeleteComplete:

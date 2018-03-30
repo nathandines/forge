@@ -1,8 +1,11 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"time"
 
 	stack "github.com/nathandines/stack/stacklib"
 
@@ -51,5 +54,19 @@ func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+func printStackEvents(s *stack.Stack, after *time.Time) {
+	bunch, err := s.ListEvents(after)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, e := range bunch {
+		jsonData, err := json.MarshalIndent(*e, "", "  ")
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(string(jsonData))
 	}
 }
