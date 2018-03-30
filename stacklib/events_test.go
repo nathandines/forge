@@ -15,7 +15,18 @@ type mockEvents struct {
 }
 
 func (m mockEvents) DescribeStackEventsPages(input *cloudformation.DescribeStackEventsInput, function func(*cloudformation.DescribeStackEventsOutput, bool) bool) error {
-	function(&m.stackEventsOutput, true)
+	// Paginate events to test that the destination functions concatenate the
+	// entries correctly
+	for i := 0; i < len(m.stackEventsOutput.StackEvents); i++ {
+		thisOutput := &cloudformation.DescribeStackEventsOutput{
+			StackEvents: []*cloudformation.StackEvent{
+				m.stackEventsOutput.StackEvents[i],
+			},
+		}
+		if nextPage := function(thisOutput, true); !nextPage {
+			return nil
+		}
+	}
 	return nil
 }
 
