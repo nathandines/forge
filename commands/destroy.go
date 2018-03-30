@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -31,23 +32,11 @@ var destroyCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 			for _, e := range bunch {
-				statusReason := "<undefined>"
-				if e.ResourceStatusReason != nil {
-					statusReason = *e.ResourceStatusReason
+				jsonData, err := json.MarshalIndent(*e, "", "  ")
+				if err != nil {
+					log.Fatal(err)
 				}
-				fmt.Printf(
-					"%s: %s; %s; %s; %s; Reason: %s\n",
-					e.Timestamp.Local(),
-					*e.ResourceStatus,
-					*e.ResourceType,
-					*e.LogicalResourceId,
-					*e.PhysicalResourceId,
-					statusReason,
-				)
-			}
-
-			if len(bunch) > 0 {
-				after = bunch[len(bunch)-1].Timestamp
+				fmt.Println(string(jsonData))
 			}
 
 			switch *stackResource.StackInfo.StackStatus {
