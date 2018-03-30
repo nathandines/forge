@@ -109,7 +109,7 @@ func TestDestroy(t *testing.T) {
 			t.Fatalf("%d, unexpected error, %v", i, err)
 		}
 		if err == nil && !c.expectSuccess {
-			t.Fatalf("%d, unexpected success", i)
+			t.Errorf("%d, expected error, got success", i)
 		}
 
 		for j := range c.stacks {

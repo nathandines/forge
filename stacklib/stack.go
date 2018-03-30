@@ -32,10 +32,12 @@ func init() {
 // found in the environment
 func (s *Stack) GetStackInfo() (err error) {
 	var stackName *string
-	if s.StackInfo != nil {
-		stackName = s.StackInfo.StackId
-	} else {
+	if s.StackID != "" {
+		stackName = &s.StackID
+	} else if s.StackName != "" {
 		stackName = &s.StackName
+	} else {
+		return errorNoStackNameOrID
 	}
 	if stackOut, err := cfn.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: stackName,
