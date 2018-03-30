@@ -13,12 +13,13 @@ var destroyCmd = &cobra.Command{
 	Use:   "destroy",
 	Short: "Destroy a CloudFormation Stack",
 	Run: func(cmd *cobra.Command, args []string) {
-		after, err := stackResource.GetLastEventTime()
-		if err != nil {
-			log.Fatal(err)
-		}
 		// Populate Stack ID
 		if err := stackResource.GetStackInfo(); err != nil {
+			log.Fatal(err)
+		}
+
+		after, err := stackResource.GetLastEventTime()
+		if err != nil {
 			log.Fatal(err)
 		}
 
