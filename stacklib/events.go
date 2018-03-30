@@ -16,15 +16,12 @@ func (t byTime) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
 // ListEvents will get all events for a stack and sort them in chronological order
 // within a time range
 func (s *Stack) ListEvents(after *time.Time) (events []*cloudformation.StackEvent, err error) {
-	var stackName *string
-	if s.StackID != "" {
-		stackName = &s.StackID
-	} else {
-		stackName = &s.StackName
+	if s.StackID == "" {
+		return events, errorNoStackID
 	}
 	if err := cfn.DescribeStackEventsPages(
 		&cloudformation.DescribeStackEventsInput{
-			StackName: stackName,
+			StackName: &s.StackID,
 		}, func(page *cloudformation.DescribeStackEventsOutput, lastPage bool) bool {
 			for _, e := range page.StackEvents {
 				if e.Timestamp.UnixNano() > after.UnixNano() {
