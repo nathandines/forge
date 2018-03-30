@@ -10,8 +10,8 @@ import (
 )
 
 type mockEvents struct {
-	cloudformationiface.CloudFormationAPI
 	stackEventsOutput cloudformation.DescribeStackEventsOutput
+	cloudformationiface.CloudFormationAPI
 }
 
 func (m mockEvents) DescribeStackEventsPages(input *cloudformation.DescribeStackEventsInput, function func(*cloudformation.DescribeStackEventsOutput, bool) bool) error {
@@ -94,7 +94,7 @@ func TestListEvents(t *testing.T) {
 	for i, c := range cases {
 		cfn = mockEvents{stackEventsOutput: c.resp}
 
-		s := Stack{}
+		s := Stack{StackID: "whatever"}
 		events, err := s.ListEvents(&c.after)
 		if err != nil {
 			t.Fatalf("%d, unexpected error, %v", i, err)
@@ -126,7 +126,7 @@ func TestGetLastEventTime(t *testing.T) {
 	for i, c := range cases {
 		cfn = mockEvents{stackEventsOutput: c.resp}
 
-		s := Stack{}
+		s := Stack{StackID: "whatever"}
 		result, err := s.GetLastEventTime()
 		if err != nil {
 			t.Fatalf("%d, unexpected error, %v", i, err)

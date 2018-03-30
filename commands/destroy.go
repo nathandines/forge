@@ -17,6 +17,11 @@ var destroyCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
+		// Populate Stack ID
+		if err := stackResource.GetStackInfo(); err != nil {
+			log.Fatal(err)
+		}
+
 		if err := stackResource.Destroy(); err != nil {
 			log.Fatal(err)
 		}

@@ -41,7 +41,12 @@ func (s *Stack) GetStackInfo() (err error) {
 		StackName: stackName,
 	}); err == nil {
 		s.StackInfo = stackOut.Stacks[0]
-		s.StackID = *s.StackInfo.StackId
+		if s.StackName == "" {
+			s.StackName = *s.StackInfo.StackName
+		}
+		if s.StackID == "" {
+			s.StackID = *s.StackInfo.StackId
+		}
 	} else {
 		return err
 	}
