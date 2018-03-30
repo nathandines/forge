@@ -119,3 +119,11 @@ func TestDestroy(t *testing.T) {
 		}
 	}
 }
+
+func TestDestroyNoStackID(t *testing.T) {
+	s := Stack{}
+
+	if err := s.Destroy(); err == nil {
+		t.Errorf("expected error, got success")
+	}
+}

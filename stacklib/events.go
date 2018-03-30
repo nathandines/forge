@@ -19,7 +19,7 @@ func (s *Stack) ListEvents(after *time.Time) (events []*cloudformation.StackEven
 	if s.StackID == "" {
 		return events, errorNoStackID
 	}
-	if err := cfn.DescribeStackEventsPages(
+	err = cfn.DescribeStackEventsPages(
 		&cloudformation.DescribeStackEventsInput{
 			StackName: &s.StackID,
 		}, func(page *cloudformation.DescribeStackEventsOutput, lastPage bool) bool {
@@ -31,7 +31,8 @@ func (s *Stack) ListEvents(after *time.Time) (events []*cloudformation.StackEven
 			// Continue reading all pages
 			return true
 		},
-	); err != nil {
+	)
+	if err != nil {
 		return events, err
 	}
 
