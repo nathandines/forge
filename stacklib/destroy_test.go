@@ -4,26 +4,21 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
-type fakeStack struct {
-	stackName   string
-	stackID     string
-	stackStatus string
-}
-
 type mockDelete struct {
-	stacks *[]fakeStack
+	stacks *[]cloudformation.Stack
 	cloudformationiface.CloudFormationAPI
 }
 
 func (m mockDelete) DeleteStack(input *cloudformation.DeleteStackInput) (output *cloudformation.DeleteStackOutput, err error) {
 	for i := 0; i < len(*m.stacks); i++ {
-		if (*m.stacks)[i].stackID == *input.StackName &&
-			(*m.stacks)[i].stackStatus != cloudformation.StackStatusDeleteComplete {
-			(*m.stacks)[i].stackStatus = cloudformation.StackStatusDeleteComplete
+		if *(*m.stacks)[i].StackId == *input.StackName &&
+			*(*m.stacks)[i].StackStatus != cloudformation.StackStatusDeleteComplete {
+			*(*m.stacks)[i].StackStatus = cloudformation.StackStatusDeleteComplete
 			return
 		}
 	}
@@ -32,37 +27,37 @@ func (m mockDelete) DeleteStack(input *cloudformation.DeleteStackInput) (output 
 
 func TestDestroy(t *testing.T) {
 	cases := []struct {
-		expectStacks  []fakeStack
+		expectStacks  []cloudformation.Stack
 		expectSuccess bool
 		thisStack     Stack
-		stacks        []fakeStack
+		stacks        []cloudformation.Stack
 	}{
 		{
 			thisStack: Stack{
 				StackID: "test-stack/id0",
 			},
-			stacks: []fakeStack{
+			stacks: []cloudformation.Stack{
 				{
-					stackName:   "test-stack",
-					stackID:     "test-stack/id0",
-					stackStatus: cloudformation.StackStatusCreateComplete,
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 				},
 				{
-					stackName:   "test-stack",
-					stackID:     "test-stack/id1",
-					stackStatus: cloudformation.StackStatusDeleteComplete,
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
 				},
 			},
-			expectStacks: []fakeStack{
+			expectStacks: []cloudformation.Stack{
 				{
-					stackName:   "test-stack",
-					stackID:     "test-stack/id0",
-					stackStatus: cloudformation.StackStatusDeleteComplete,
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
 				},
 				{
-					stackName:   "test-stack",
-					stackID:     "test-stack/id1",
-					stackStatus: cloudformation.StackStatusDeleteComplete,
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
 				},
 			},
 			expectSuccess: true,
@@ -71,28 +66,28 @@ func TestDestroy(t *testing.T) {
 			thisStack: Stack{
 				StackID: "test-stack/id0",
 			},
-			stacks: []fakeStack{
+			stacks: []cloudformation.Stack{
 				{
-					stackName:   "test-stack",
-					stackID:     "test-stack/id0",
-					stackStatus: cloudformation.StackStatusDeleteComplete,
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
 				},
 				{
-					stackName:   "test-stack",
-					stackID:     "test-stack/id1",
-					stackStatus: cloudformation.StackStatusDeleteComplete,
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
 				},
 			},
-			expectStacks: []fakeStack{
+			expectStacks: []cloudformation.Stack{
 				{
-					stackName:   "test-stack",
-					stackID:     "test-stack/id0",
-					stackStatus: cloudformation.StackStatusDeleteComplete,
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
 				},
 				{
-					stackName:   "test-stack",
-					stackID:     "test-stack/id1",
-					stackStatus: cloudformation.StackStatusDeleteComplete,
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
 				},
 			},
 			expectSuccess: false,
@@ -112,9 +107,19 @@ func TestDestroy(t *testing.T) {
 			t.Errorf("%d, expected error, got success", i)
 		}
 
-		for j := range c.stacks {
-			if e, g := c.expectStacks[j], c.stacks[j]; e != g {
-				t.Errorf("%d, expected %v stack name, got %v", i, e, g)
+		for j := 0; j < len(c.stacks); j++ {
+			e := struct{ StackName, StackID, StackStatus string }{
+				*c.expectStacks[j].StackName,
+				*c.expectStacks[j].StackId,
+				*c.expectStacks[j].StackStatus,
+			}
+			g := struct{ StackName, StackID, StackStatus string }{
+				*c.stacks[j].StackName,
+				*c.stacks[j].StackId,
+				*c.stacks[j].StackStatus,
+			}
+			if e != g {
+				t.Errorf("%d, expected %v, got %v", i, e, g)
 			}
 		}
 	}
