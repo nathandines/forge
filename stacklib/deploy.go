@@ -27,6 +27,7 @@ func (s *Stack) Deploy() (err error) {
 		&cloudformation.CreateStackInput{
 			StackName:    aws.String(s.StackName),
 			TemplateBody: aws.String(string(templateBody)),
+			OnFailure:    aws.String("DELETE"),
 		},
 	)
 	return
