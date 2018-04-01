@@ -1,7 +1,9 @@
 package stacklib
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -9,23 +11,43 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
-type mockDelete struct {
-	stacks *[]cloudformation.Stack
+type mockDeploy struct {
+	newStackID string
+	stacks     *[]cloudformation.Stack
 	cloudformationiface.CloudFormationAPI
 }
 
-func (m mockDelete) DeleteStack(input *cloudformation.DeleteStackInput) (output *cloudformation.DeleteStackOutput, err error) {
-	for i := 0; i < len(*m.stacks); i++ {
-		if *(*m.stacks)[i].StackId == *input.StackName &&
-			*(*m.stacks)[i].StackStatus != cloudformation.StackStatusDeleteComplete {
-			*(*m.stacks)[i].StackStatus = cloudformation.StackStatusDeleteComplete
-			return
-		}
-	}
-	return output, fmt.Errorf("stack not found")
+type fakeReadFile struct {
+	String string
 }
 
-func TestDestroy(t *testing.T) {
+func (m mockDeploy) ValidateTemplate(*cloudformation.ValidateTemplateInput) (output *cloudformation.ValidateTemplateOutput, err error) {
+	return
+}
+
+func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (output *cloudformation.CreateStackOutput, err error) {
+	for i := 0; i < len(*m.stacks); i++ {
+		if *(*m.stacks)[i].StackName == *input.StackName &&
+			*(*m.stacks)[i].StackStatus != cloudformation.StackStatusDeleteComplete {
+			return output, fmt.Errorf("stack already exists")
+		}
+	}
+	thisStack := cloudformation.Stack{
+		StackName:   input.StackName,
+		StackId:     aws.String(m.newStackID),
+		StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+	}
+	*m.stacks = append(*m.stacks, thisStack)
+	output = &cloudformation.CreateStackOutput{StackId: &m.newStackID}
+	return
+}
+
+func (f fakeReadFile) readFile(filename string) ([]byte, error) {
+	buf := bytes.NewBufferString(f.String)
+	return ioutil.ReadAll(buf)
+}
+
+func TestDeploy(t *testing.T) {
 	cases := []struct {
 		expectStacks  []cloudformation.Stack
 		expectSuccess bool
@@ -34,13 +56,14 @@ func TestDestroy(t *testing.T) {
 	}{
 		{
 			thisStack: Stack{
-				StackID: "test-stack/id0",
+				StackName: "test-stack",
+				StackID:   "test-stack/id2",
 			},
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
 					StackId:     aws.String("test-stack/id0"),
-					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
 				},
 				{
 					StackName:   aws.String("test-stack"),
@@ -58,49 +81,32 @@ func TestDestroy(t *testing.T) {
 					StackName:   aws.String("test-stack"),
 					StackId:     aws.String("test-stack/id1"),
 					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id2"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 				},
 			},
 			expectSuccess: true,
-		},
-		{
-			thisStack: Stack{
-				StackID: "test-stack/id0",
-			},
-			stacks: []cloudformation.Stack{
-				{
-					StackName:   aws.String("test-stack"),
-					StackId:     aws.String("test-stack/id0"),
-					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
-				},
-				{
-					StackName:   aws.String("test-stack"),
-					StackId:     aws.String("test-stack/id1"),
-					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
-				},
-			},
-			expectStacks: []cloudformation.Stack{
-				{
-					StackName:   aws.String("test-stack"),
-					StackId:     aws.String("test-stack/id0"),
-					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
-				},
-				{
-					StackName:   aws.String("test-stack"),
-					StackId:     aws.String("test-stack/id1"),
-					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
-				},
-			},
-			expectSuccess: false,
 		},
 	}
 
 	for i, c := range cases {
 		theseStacks := cases[i].stacks
-		cfn = mockDelete{
-			stacks: &theseStacks,
+		cfn = mockDeploy{
+			stacks:     &theseStacks,
+			newStackID: c.thisStack.StackID,
 		}
 
-		err := c.thisStack.Destroy()
+		fakeIO := fakeReadFile{
+			String: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
+		}
+		readFile = fakeIO.readFile
+
+		c.thisStack.TemplateFile = "whatever.yml"
+
+		err := c.thisStack.Deploy()
 		if err != nil && c.expectSuccess {
 			t.Fatalf("%d, unexpected error, %v", i, err)
 		}
@@ -123,13 +129,5 @@ func TestDestroy(t *testing.T) {
 				t.Errorf("%d, expected %+v, got %+v", i, e, g)
 			}
 		}
-	}
-}
-
-func TestDestroyNoStackID(t *testing.T) {
-	s := Stack{}
-
-	if err := s.Destroy(); err == nil {
-		t.Errorf("expected error, got success")
 	}
 }

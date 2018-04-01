@@ -35,10 +35,12 @@ var destroyCmd = &cobra.Command{
 
 			printStackEvents(&stackResource, after)
 
-			switch *stackResource.StackInfo.StackStatus {
-			case cloudformation.StackStatusDeleteComplete:
+			status := *stackResource.StackInfo.StackStatus
+			switch {
+			case stackInProgressRegexp.MatchString(status):
+			case status == cloudformation.StackStatusDeleteComplete:
 				os.Exit(0)
-			case cloudformation.StackStatusDeleteFailed:
+			default:
 				os.Exit(1)
 			}
 
