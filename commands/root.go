@@ -71,4 +71,7 @@ func printStackEvents(s *stack.Stack, after *time.Time) {
 		}
 		fmt.Println(string(jsonData))
 	}
+	if len(bunch) > 0 {
+		*after = *bunch[len(bunch)-1].Timestamp
+	}
 }
