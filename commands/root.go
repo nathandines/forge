@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"time"
 
 	stack "github.com/nathandines/stack/stacklib"
@@ -13,6 +14,7 @@ import (
 )
 
 var stackResource = stack.Stack{}
+var stackInProgressRegexp = regexp.MustCompile("^.*_IN_PROGRESS$")
 
 var rootCmd = &cobra.Command{
 	Use:   "stack",
