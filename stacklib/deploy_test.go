@@ -42,6 +42,34 @@ func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (output 
 	return
 }
 
+func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (output *cloudformation.UpdateStackOutput, err error) {
+	for i := 0; i < len(*m.stacks); i++ {
+		if *(*m.stacks)[i].StackName == *input.StackName {
+			switch *(*m.stacks)[i].StackStatus {
+			case
+				cloudformation.StackStatusCreateComplete,
+				cloudformation.StackStatusUpdateComplete,
+				cloudformation.StackStatusUpdateRollbackComplete:
+				*(*m.stacks)[i].StackStatus = cloudformation.StackStatusUpdateComplete
+				output = &cloudformation.UpdateStackOutput{StackId: &m.newStackID}
+				return
+			}
+		}
+	}
+	return output, fmt.Errorf("stack in expected state not found")
+}
+
+func (m mockDeploy) DescribeStacks(*cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
+	outputStacks := []*cloudformation.Stack{}
+	for i := 0; i < len(*m.stacks); i++ {
+		outputStacks = append(outputStacks, &(*m.stacks)[i])
+	}
+	output := &cloudformation.DescribeStacksOutput{
+		Stacks: outputStacks,
+	}
+	return output, nil
+}
+
 func (f fakeReadFile) readFile(filename string) ([]byte, error) {
 	buf := bytes.NewBufferString(f.String)
 	return ioutil.ReadAll(buf)
@@ -89,6 +117,66 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 			expectSuccess: true,
+		},
+		{
+			thisStack: Stack{
+				StackName: "test-stack",
+			},
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+				},
+			},
+			expectSuccess: true,
+		},
+		{
+			thisStack: Stack{
+				StackName: "test-stack",
+			},
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateRollbackFailed),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateRollbackFailed),
+				},
+			},
+			expectSuccess: false,
 		},
 	}
 
