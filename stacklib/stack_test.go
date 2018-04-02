@@ -51,12 +51,9 @@ func TestGetStackInfo(t *testing.T) {
 	for i, c := range cases {
 		cfn = mockStacks{stacksOutput: c.resp}
 
-		s := Stack{}
-		if c.stackID != "" {
-			s.StackID = c.stackID
-		}
-		if c.stackName != "" {
-			s.StackName = c.stackName
+		s := Stack{
+			StackName: c.stackName,
+			StackID:   c.stackID,
 		}
 
 		err := s.GetStackInfo()
