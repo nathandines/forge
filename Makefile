@@ -4,7 +4,8 @@ bin/stack:
 	go build -o bin/stack
 
 test:
-	cd stacklib && go test -v -cover
+	@cd stacklib && \
+		go test -v -cover
 
 deps:
 	go get -v -d -t ./...
