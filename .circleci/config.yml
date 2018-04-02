@@ -3,10 +3,28 @@ version: 2
 jobs:
   build:
     working_directory: /go/src/github.com/nathandines/stack
+
     docker:
       - image: circleci/golang:latest
+
+    environment:
+      TEST_RESULTS: /tmp/test-results
+
     steps:
       - checkout
+
+      - run: mkdir -p "$TEST_RESULTS"
+      - run: go get github.com/jstemmer/go-junit-report
+
       - run: make deps
-      - run: make test
+      - run: |
+          trap 'go-junit-report <"${TEST_RESULTS}/go-test.out" > "${TEST_RESULTS}/go-test-report.xml"' EXIT
+          make test | tee "${TEST_RESULTS}/go-test.out"
       - run: make
+
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: raw-test-output
+
+      - store_test_results:
+          path: /tmp/test-results
