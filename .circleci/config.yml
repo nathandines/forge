@@ -38,6 +38,8 @@ jobs:
   release:
     <<: *defaults
     steps:
+      - checkout
+
       - attach_workspace:
           at: bin
 
