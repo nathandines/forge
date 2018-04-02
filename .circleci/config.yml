@@ -51,8 +51,12 @@ jobs:
               echo "Tag version \"${CIRCLE_TAG}\" does not match binary version \"${stack_version}\""
               exit 1
             fi
+
+      - run:
+          name: Setup
+          command: |
+            make deps
             mkdir release
-            echo "$CIRCLE_TAG" > version
 
       - run:
           name: Build - Linux (32-bit)
