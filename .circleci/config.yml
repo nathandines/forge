@@ -51,11 +51,6 @@ jobs:
               echo "Tag version \"${CIRCLE_TAG}\" does not match binary version \"${stack_version}\""
               exit 1
             fi
-
-      - run:
-          name: Setup
-          command: |
-            make deps
             mkdir release
 
       - run:
@@ -63,7 +58,9 @@ jobs:
           environment:
             GOOS: linux
             GOARCH: '386'
-          command: &build_cmd go build -v -o "release/stack_${CIRCLE_TAG}_${GOOS}_${GOARCH}${FILEEXT}"
+          command: &build_cmd |
+            make deps
+            go build -v -o "release/stack_${CIRCLE_TAG}_${GOOS}_${GOARCH}${FILEEXT}"
 
       - run:
           name: Build - Linux (64-bit)
