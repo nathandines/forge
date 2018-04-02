@@ -13,7 +13,7 @@ func verifyStackName(stackName string) (err error) {
 		)
 	}
 
-	result, err := regexp.MatchString(fmt.Sprintf(regexPattern), stackName)
+	result, err := regexp.MatchString(regexPattern, stackName)
 	if err != nil {
 		return err
 	} else if !result {

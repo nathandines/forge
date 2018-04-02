@@ -5,7 +5,7 @@ bin/stack:
 
 test:
 	@cd stacklib && \
-		go test -v -cover
+		go test -v -cover -race
 
 deps:
 	go get -v -d -t ./...
