@@ -104,7 +104,7 @@ jobs:
           if (printf "$CIRCLE_TAG" | grep -Pq -- '-[a-z]+\d?$'); then
             PRERELEASE='-prerelease'
           fi
-          ghr -u "$CIRCLE_PROJECT_USERNAME" -r "CIRCLE_PROJECT_REPONAME" -replace "$PRERELEASE" "$CIRCLE_TAG" release
+          ghr -u "$CIRCLE_PROJECT_USERNAME" -r "$CIRCLE_PROJECT_REPONAME" -replace "$PRERELEASE" "$CIRCLE_TAG" release
 
 workflows:
   version: 2
