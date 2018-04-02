@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
@@ -44,10 +45,10 @@ func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (output 
 
 func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (output *cloudformation.UpdateStackOutput, err error) {
 	for i := 0; i < len(*m.stacks); i++ {
-		if *(*m.stacks)[i].StackName == *input.StackName {
+		if s := *input.StackName; s == *(*m.stacks)[i].StackId ||
+			s == *(*m.stacks)[i].StackName {
 			switch *(*m.stacks)[i].StackStatus {
-			case
-				cloudformation.StackStatusCreateComplete,
+			case cloudformation.StackStatusCreateComplete,
 				cloudformation.StackStatusUpdateComplete,
 				cloudformation.StackStatusUpdateRollbackComplete:
 				*(*m.stacks)[i].StackStatus = cloudformation.StackStatusUpdateComplete
@@ -59,15 +60,32 @@ func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (output 
 	return output, fmt.Errorf("stack in expected state not found")
 }
 
-func (m mockDeploy) DescribeStacks(*cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
+func (m mockDeploy) DescribeStacks(input *cloudformation.DescribeStacksInput) (output *cloudformation.DescribeStacksOutput, err error) {
 	outputStacks := []*cloudformation.Stack{}
 	for i := 0; i < len(*m.stacks); i++ {
-		outputStacks = append(outputStacks, &(*m.stacks)[i])
+		if s := *input.StackName; s != "" {
+			if s == *(*m.stacks)[i].StackId ||
+				(s == *(*m.stacks)[i].StackName &&
+					*(*m.stacks)[i].StackStatus != cloudformation.StackStatusDeleteComplete) {
+				outputStacks = append(outputStacks, &(*m.stacks)[i])
+				output = &cloudformation.DescribeStacksOutput{Stacks: outputStacks}
+				return
+			}
+		} else {
+			outputStacks = append(outputStacks, &(*m.stacks)[i])
+			output = &cloudformation.DescribeStacksOutput{Stacks: outputStacks}
+			return
+		}
 	}
-	output := &cloudformation.DescribeStacksOutput{
-		Stacks: outputStacks,
+	if *input.StackName != "" {
+		err := awserr.New(
+			"ValidationError",
+			fmt.Sprintf("Stack with id %s does not exist", *input.StackName),
+			nil,
+		)
+		return output, err
 	}
-	return output, nil
+	return
 }
 
 func (f fakeReadFile) readFile(filename string) ([]byte, error) {
@@ -79,13 +97,14 @@ func TestDeploy(t *testing.T) {
 	cases := []struct {
 		expectStacks  []cloudformation.Stack
 		expectSuccess bool
-		thisStack     Stack
+		newStackID    string
 		stacks        []cloudformation.Stack
+		thisStack     Stack
 	}{
 		{
+			newStackID: "test-stack/id2",
 			thisStack: Stack{
 				StackName: "test-stack",
-				StackID:   "test-stack/id2",
 			},
 			stacks: []cloudformation.Stack{
 				{
@@ -184,7 +203,7 @@ func TestDeploy(t *testing.T) {
 		theseStacks := cases[i].stacks
 		cfn = mockDeploy{
 			stacks:     &theseStacks,
-			newStackID: c.thisStack.StackID,
+			newStackID: c.newStackID,
 		}
 
 		fakeIO := fakeReadFile{
