@@ -1,5 +1,9 @@
 # Stack
 
+[![CircleCI](https://circleci.com/gh/nathandines/stack.svg?style=svg)](https://circleci.com/gh/nathandines/stack)
+![GitHub (pre-)release](https://img.shields.io/github/release/nathandines/stack/all.svg)
+![Github All Releases](https://img.shields.io/github/downloads/nathandines/stack/total.svg)
+
 ## What is Stack, and why do I need it?
 
 _Stack_ is a simple tool which makes deploying CloudFormation stacks a bit more
