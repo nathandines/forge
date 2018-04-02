@@ -47,20 +47,19 @@ jobs:
           name: Validate Tag Version
           command: |
             stack_version="$(./bin/stack --version | grep -Po 'v\d+(?:\.\d+){2}(?:-[a-z]+\d?)?$')"
-            tag_version="$(git tag --points-at | grep -P '^v\d+(?:\.\d+){2}(?:-[a-z]+\d?)?$')"
-            if [[ "$tag_version" != "$stack_version" ]]; then
-              echo "Tag version ${tag_version} does not match binary version ${stack_version}"
+            if [[ "$CIRCLE_TAG" != "$stack_version" ]]; then
+              echo "Tag version \"${CIRCLE_TAG}\" does not match binary version \"${stack_version}\""
               exit 1
             fi
             mkdir release
-            echo "$tag_version" > version
+            echo "$CIRCLE_TAG" > version
 
       - run:
           name: Build - Linux (32-bit)
           environment:
             GOOS: linux
             GOARCH: '386'
-          command: &build_cmd go build -v -o "release/stack_$(cat 'version')_${GOOS}_${GOARCH}"
+          command: &build_cmd go build -v -o "release/stack_${CIRCLE_TAG}_${GOOS}_${GOARCH}${FILEEXT}"
 
       - run:
           name: Build - Linux (64-bit)
@@ -74,6 +73,7 @@ jobs:
           environment:
             GOOS: windows
             GOARCH: '386'
+            FILEEXT: .exe
           command: *build_cmd
 
       - run:
@@ -81,6 +81,7 @@ jobs:
           environment:
             GOOS: windows
             GOARCH: amd64
+            FILEEXT: .exe
           command: *build_cmd
 
       - run:
@@ -99,10 +100,10 @@ jobs:
 
       - run: go get github.com/tcnksm/ghr
       - run: |
-          if (echo 'v1.0.0-alpha' | grep -Pq -- '-[a-z]+\d?$'); then
+          if (printf "$CIRCLE_TAG" | grep -Pq -- '-[a-z]+\d?$'); then
             PRERELEASE='-prerelease'
           fi
-          ghr -u nathandines "$PRERELEASE" "$(cat version)" release
+          ghr -u nathandines "$PRERELEASE" "$CIRCLE_TAG" release
 
 workflows:
   version: 2
