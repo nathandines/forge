@@ -16,9 +16,10 @@ clean:
 lint:
 	$(MAKE) -k gofmt govet godiff
 
-gofmt:
-	@echo 'gofmt -d .'
-	@fmtout="$$(gofmt -d .)"; \
+GOFMT_CMD = gofmt -s -d .
+ gofmt:
+	@echo '$(GOFMT_CMD)'
+	@fmtout="$$($(GOFMT_CMD))"; \
 	if [ "$${fmtout:+x}" = "x" ]; then \
 		echo "$$fmtout"; \
 		exit 1; \
