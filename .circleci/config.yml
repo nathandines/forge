@@ -14,10 +14,12 @@ jobs:
     steps:
       - checkout
 
+      - run: make deps
+
+      - run: make lint
+
       - run: mkdir -p "$TEST_RESULTS"
       - run: go get github.com/jstemmer/go-junit-report
-
-      - run: make deps
       - run: |
           trap 'go-junit-report <"${TEST_RESULTS}/go-test.out" > "${TEST_RESULTS}/go-test-report.xml"' EXIT
           make test | tee "${TEST_RESULTS}/go-test.out"
