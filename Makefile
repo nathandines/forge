@@ -17,7 +17,7 @@ lint:
 	$(MAKE) -k gofmt govet godiff
 
 GOFMT_CMD = gofmt -s -d .
- gofmt:
+gofmt:
 	@echo '$(GOFMT_CMD)'
 	@fmtout="$$($(GOFMT_CMD))"; \
 	if [ "$${fmtout:+x}" = "x" ]; then \
