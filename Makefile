@@ -1,4 +1,4 @@
-.PHONY: test clean deps lint gofmt govet godiff
+.PHONY: test clean deps lint gofmt govet godiff coverage
 
 bin/stack:
 	go build -o bin/stack
@@ -6,6 +6,11 @@ bin/stack:
 test:
 	@cd stacklib && \
 		go test -v -cover -race
+
+coverage:
+	@cd stacklib && \
+		go test -coverprofile=../coverage.out
+	go tool cover -html=coverage.out
 
 deps:
 	go get -v -d -t ./...
@@ -17,7 +22,7 @@ lint:
 	$(MAKE) -k gofmt govet godiff
 
 GOFMT_CMD = gofmt -s -d .
- gofmt:
+gofmt:
 	@echo '$(GOFMT_CMD)'
 	@fmtout="$$($(GOFMT_CMD))"; \
 	if [ "$${fmtout:+x}" = "x" ]; then \

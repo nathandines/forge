@@ -26,7 +26,7 @@ func (s *Stack) Deploy() (err error) {
 		},
 	)
 
-	if s.GetStackInfo(); err != nil {
+	if err := s.GetStackInfo(); err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			switch awsErr.Message() {
 			case fmt.Sprintf("Stack with id %s does not exist", s.StackID),
@@ -57,7 +57,15 @@ func (s *Stack) Deploy() (err error) {
 			},
 		)
 		if err != nil {
-			return err
+			if awsErr, ok := err.(awserr.Error); ok {
+				noUpdatesErr := "No updates are to be performed."
+				if awsErr.Message() != noUpdatesErr {
+					return err
+				}
+				fmt.Println(noUpdatesErr)
+			} else {
+				return err
+			}
 		}
 	}
 	return
