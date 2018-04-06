@@ -57,7 +57,15 @@ func (s *Stack) Deploy() (err error) {
 			},
 		)
 		if err != nil {
-			return err
+			if awsErr, ok := err.(awserr.Error); ok {
+				noUpdatesErr := "No updates are to be performed."
+				if awsErr.Message() != noUpdatesErr {
+					return err
+				}
+				fmt.Println(noUpdatesErr)
+			} else {
+				return err
+			}
 		}
 	}
 	return

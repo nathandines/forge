@@ -14,6 +14,7 @@ import (
 
 type mockDeploy struct {
 	newStackID string
+	noUpdates  bool
 	stacks     *[]cloudformation.Stack
 	cloudformationiface.CloudFormationAPI
 }
@@ -44,6 +45,13 @@ func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (output 
 }
 
 func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (output *cloudformation.UpdateStackOutput, err error) {
+	if m.noUpdates {
+		return output, awserr.New(
+			"ValidationError",
+			"No updates are to be performed.",
+			nil,
+		)
+	}
 	for i := 0; i < len(*m.stacks); i++ {
 		if s := *input.StackName; s == *(*m.stacks)[i].StackId ||
 			s == *(*m.stacks)[i].StackName {
@@ -78,12 +86,11 @@ func (m mockDeploy) DescribeStacks(input *cloudformation.DescribeStacksInput) (o
 		}
 	}
 	if *input.StackName != "" {
-		err := awserr.New(
+		err = awserr.New(
 			"ValidationError",
 			fmt.Sprintf("Stack with id %s does not exist", *input.StackName),
 			nil,
 		)
-		return output, err
 	}
 	return
 }
@@ -98,6 +105,7 @@ func TestDeploy(t *testing.T) {
 		expectStacks  []cloudformation.Stack
 		expectSuccess bool
 		newStackID    string
+		noUpdates     bool
 		stacks        []cloudformation.Stack
 		thisStack     Stack
 	}{
@@ -197,6 +205,37 @@ func TestDeploy(t *testing.T) {
 			},
 			expectSuccess: false,
 		},
+		{
+			thisStack: Stack{
+				StackName: "test-stack",
+			},
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+				},
+			},
+			expectSuccess: true,
+			noUpdates:     true,
+		},
 	}
 
 	for i, c := range cases {
@@ -204,6 +243,7 @@ func TestDeploy(t *testing.T) {
 		cfn = mockDeploy{
 			stacks:     &theseStacks,
 			newStackID: c.newStackID,
+			noUpdates:  c.noUpdates,
 		}
 
 		fakeIO := fakeReadFile{
