@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -24,11 +25,17 @@ var deployCmd = &cobra.Command{
 			after = &epoch
 		}
 
-		if err := stackResource.Deploy(); err != nil {
+		output, err := stackResource.Deploy()
+		if err != nil {
 			log.Fatal(err)
 		}
 
 		for {
+			if t := "No updates are to be performed."; output.Message == t {
+				fmt.Println(t)
+				break
+			}
+
 			// Refresh Stack State
 			if err := stackResource.GetStackInfo(); err != nil {
 				log.Fatal(err)

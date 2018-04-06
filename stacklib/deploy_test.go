@@ -110,6 +110,7 @@ func (f fakeReadFile) readFile(filename string) ([]byte, error) {
 
 func TestDeploy(t *testing.T) {
 	cases := []struct {
+		expectOutput  DeployOut
 		expectStacks  []cloudformation.Stack
 		expectSuccess bool
 		newStackID    string
@@ -258,6 +259,7 @@ func TestDeploy(t *testing.T) {
 			},
 			expectSuccess: true,
 			noUpdates:     true,
+			expectOutput:  DeployOut{Message: "No updates are to be performed."},
 		},
 	}
 
@@ -276,12 +278,15 @@ func TestDeploy(t *testing.T) {
 
 		c.thisStack.TemplateFile = "whatever.yml"
 
-		err := c.thisStack.Deploy()
+		output, err := c.thisStack.Deploy()
 		if err != nil && c.expectSuccess {
 			t.Fatalf("%d, unexpected error, %v", i, err)
 		}
 		if err == nil && !c.expectSuccess {
 			t.Errorf("%d, expected error, got success", i)
+		}
+		if e, g := c.expectOutput, output; e != g {
+			t.Errorf("%d, expected %+v info, got %+v", i, e, g)
 		}
 
 		for j := 0; j < len(c.expectStacks); j++ {
