@@ -14,11 +14,13 @@ import (
 
 type mockDeploy struct {
 	capabilityIam bool
+	failCreate    bool
+	failDescribe  bool
+	failValidate  bool
+	newStackID    string
+	noUpdates     bool
+	stacks        *[]cloudformation.Stack
 	cloudformationiface.CloudFormationAPI
-	newStackID      string
-	noUpdates       bool
-	stacks          *[]cloudformation.Stack
-	validateFailure bool
 }
 
 type fakeReadFile struct {
@@ -40,7 +42,8 @@ func testIamCapability(inputCapabilities []*string) (err error) {
 
 func (m mockDeploy) ValidateTemplate(*cloudformation.ValidateTemplateInput) (*cloudformation.ValidateTemplateOutput, error) {
 	output := cloudformation.ValidateTemplateOutput{}
-	if m.validateFailure {
+
+	if m.failValidate {
 		return &output, awserr.New(
 			"ValidationError",
 			"Invalid template property or properties [BadProperty]",
@@ -57,6 +60,15 @@ func (m mockDeploy) ValidateTemplate(*cloudformation.ValidateTemplateInput) (*cl
 
 func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (*cloudformation.CreateStackOutput, error) {
 	output := cloudformation.CreateStackOutput{}
+
+	if m.failCreate {
+		return &output, awserr.New(
+			cloudformation.ErrCodeInvalidOperationException,
+			"Simulated Failure",
+			nil,
+		)
+	}
+
 	if m.capabilityIam {
 		if err := testIamCapability(input.Capabilities); err != nil {
 			return &output, err
@@ -89,6 +101,7 @@ func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (*cloudf
 			return &output, err
 		}
 	}
+
 	if m.noUpdates {
 		return &output, awserr.New(
 			"ValidationError",
@@ -96,6 +109,7 @@ func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (*cloudf
 			nil,
 		)
 	}
+
 	for i := 0; i < len(*m.stacks); i++ {
 		if s := *input.StackName; s == *(*m.stacks)[i].StackId ||
 			s == *(*m.stacks)[i].StackName {
@@ -109,6 +123,7 @@ func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (*cloudf
 			}
 		}
 	}
+
 	return &output, awserr.New(
 		"ValidationError",
 		fmt.Sprintf("Stack with id %s does not exist", *input.StackName),
@@ -120,6 +135,15 @@ func (m mockDeploy) DescribeStacks(input *cloudformation.DescribeStacksInput) (*
 	var err error
 	output := cloudformation.DescribeStacksOutput{}
 	outputStacks := []*cloudformation.Stack{}
+
+	if m.failDescribe {
+		return &output, awserr.New(
+			cloudformation.ErrCodeInvalidOperationException,
+			"Simulated Failure",
+			nil,
+		)
+	}
+
 	for i := 0; i < len(*m.stacks); i++ {
 		if s := *input.StackName; s != "" {
 			if s == *(*m.stacks)[i].StackId ||
@@ -152,15 +176,17 @@ func (f fakeReadFile) readFile(filename string) ([]byte, error) {
 
 func TestDeploy(t *testing.T) {
 	cases := []struct {
-		capabilityIam   bool
-		expectFailure   bool
-		expectOutput    DeployOut
-		expectStacks    []cloudformation.Stack
-		newStackID      string
-		noUpdates       bool
-		stacks          []cloudformation.Stack
-		thisStack       Stack
-		validateFailure bool
+		capabilityIam bool
+		failCreate    bool
+		failDescribe  bool
+		expectFailure bool
+		expectOutput  DeployOut
+		expectStacks  []cloudformation.Stack
+		newStackID    string
+		noUpdates     bool
+		stacks        []cloudformation.Stack
+		thisStack     Stack
+		failValidate  bool
 	}{
 		// Create new stack with previously used name
 		{
@@ -235,6 +261,7 @@ func TestDeploy(t *testing.T) {
 			},
 		},
 		// Test deployment against a non-deployable state
+		// This covers what would have otherwise been failUpdate
 		{
 			stacks: []cloudformation.Stack{
 				{
@@ -332,23 +359,39 @@ func TestDeploy(t *testing.T) {
 			},
 			capabilityIam: true,
 		},
+		// CreateStack error
+		{
+			stacks:        []cloudformation.Stack{},
+			expectStacks:  []cloudformation.Stack{},
+			expectFailure: true,
+			failCreate:    true,
+		},
+		// DescribeStacks error
+		{
+			stacks:        []cloudformation.Stack{},
+			expectStacks:  []cloudformation.Stack{},
+			expectFailure: true,
+			failDescribe:  true,
+		},
 		// ValidateTemplate error
 		{
-			stacks:          []cloudformation.Stack{},
-			expectStacks:    []cloudformation.Stack{},
-			expectFailure:   true,
-			validateFailure: true,
+			stacks:        []cloudformation.Stack{},
+			expectStacks:  []cloudformation.Stack{},
+			expectFailure: true,
+			failValidate:  true,
 		},
 	}
 
 	for i, c := range cases {
 		theseStacks := cases[i].stacks
 		cfn = mockDeploy{
-			stacks:          &theseStacks,
-			newStackID:      c.newStackID,
-			noUpdates:       c.noUpdates,
-			capabilityIam:   c.capabilityIam,
-			validateFailure: c.validateFailure,
+			capabilityIam: c.capabilityIam,
+			failCreate:    c.failCreate,
+			failDescribe:  c.failDescribe,
+			failValidate:  c.failValidate,
+			newStackID:    c.newStackID,
+			noUpdates:     c.noUpdates,
+			stacks:        &theseStacks,
 		}
 
 		fakeIO := fakeReadFile{String: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`}
