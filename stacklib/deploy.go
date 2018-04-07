@@ -23,11 +23,15 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 	if err != nil {
 		return output, err
 	}
-	cfn.ValidateTemplate(
+
+	validationResult, err := cfn.ValidateTemplate(
 		&cloudformation.ValidateTemplateInput{
 			TemplateBody: aws.String(string(templateBody)),
 		},
 	)
+	if err != nil {
+		return output, err
+	}
 
 	if err := s.GetStackInfo(); err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -41,12 +45,14 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 			return output, err
 		}
 	}
+
 	if s.StackInfo == nil {
 		_, err := cfn.CreateStack(
 			&cloudformation.CreateStackInput{
 				StackName:    aws.String(s.StackName),
 				TemplateBody: aws.String(string(templateBody)),
 				OnFailure:    aws.String("DELETE"),
+				Capabilities: validationResult.Capabilities,
 			},
 		)
 		if err != nil {
@@ -57,6 +63,7 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 			&cloudformation.UpdateStackInput{
 				StackName:    aws.String(s.StackID),
 				TemplateBody: aws.String(string(templateBody)),
+				Capabilities: validationResult.Capabilities,
 			},
 		)
 		if err != nil {
