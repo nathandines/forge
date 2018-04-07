@@ -27,14 +27,6 @@ friendly for continuous delivery environments.
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(
-		&stackResource.ProjectManifest,
-		"project-manifest",
-		"project.yml",
-		"Path to the project manifest",
-	)
-	rootCmd.MarkFlagFilename("project-manifest")
-
 	rootCmd.PersistentFlags().StringVarP(
 		&stackResource.StackName,
 		"stack-name",
@@ -42,13 +34,13 @@ func init() {
 		"",
 		"Name of the stack to manage",
 	)
-	rootCmd.PersistentFlags().StringVarP(
-		&stackResource.RoleName,
-		"role-name",
-		"r",
-		"",
-		"Name of IAM role in this account for CloudFormation to assume",
-	)
+	// rootCmd.PersistentFlags().StringVarP(
+	// 	&stackResource.RoleName,
+	// 	"role-name",
+	// 	"r",
+	// 	"",
+	// 	"Name of IAM role in this account for CloudFormation to assume",
+	// )
 }
 
 // Execute does what it says on the box

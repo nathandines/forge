@@ -60,14 +60,13 @@ var deployCmd = &cobra.Command{
 }
 
 func init() {
-	deployCmd.PersistentFlags().StringVar(
-		&stackResource.StackPolicyFile,
-		"stack-policy-file",
-		"",
-		`Path to the stack policy which should be applied to this CloudFormation
-stack`,
-	)
-	deployCmd.MarkFlagFilename("stack-policy-file")
+	// deployCmd.PersistentFlags().StringVar(
+	// 	&stackResource.StackPolicyFile,
+	// 	"stack-policy-file",
+	// 	"",
+	// 	"Path to the stack policy which should be applied to this CloudFormation stack",
+	// )
+	// deployCmd.MarkFlagFilename("stack-policy-file")
 
 	deployCmd.PersistentFlags().StringVarP(
 		&stackResource.TemplateFile,
@@ -78,13 +77,13 @@ stack`,
 	)
 	deployCmd.MarkFlagFilename("template-file")
 
-	deployCmd.PersistentFlags().StringVarP(
-		&stackResource.ParametersFile,
-		"parameters-file",
-		"p",
-		"",
-		"Path to the file which contains the parameters for this stack",
-	)
-	deployCmd.MarkFlagFilename("parameters-file")
+	// deployCmd.PersistentFlags().StringVarP(
+	// 	&stackResource.ParametersFile,
+	// 	"parameters-file",
+	// 	"p",
+	// 	"",
+	// 	"Path to the file which contains the parameters for this stack",
+	// )
+	// deployCmd.MarkFlagFilename("parameters-file")
 	rootCmd.AddCommand(deployCmd)
 }

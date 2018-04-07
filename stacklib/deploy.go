@@ -19,9 +19,6 @@ type DeployOut struct {
 
 // Deploy will create or update the stack (depending on its current state)
 func (s *Stack) Deploy() (output DeployOut, err error) {
-	if err := verifyStackName(s.StackName); err != nil {
-		return output, err
-	}
 	templateBody, err := readFile(s.TemplateFile)
 	if err != nil {
 		return output, err
