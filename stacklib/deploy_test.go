@@ -82,14 +82,15 @@ func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (*cloudf
 	return &output, nil
 }
 
-func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (output *cloudformation.UpdateStackOutput, err error) {
+func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (*cloudformation.UpdateStackOutput, error) {
+	output := cloudformation.UpdateStackOutput{}
 	if m.capabilityIam {
 		if err := testIamCapability(input.Capabilities); err != nil {
-			return output, err
+			return &output, err
 		}
 	}
 	if m.noUpdates {
-		return output, awserr.New(
+		return &output, awserr.New(
 			"ValidationError",
 			"No updates are to be performed.",
 			nil,
@@ -103,12 +104,12 @@ func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (output 
 				cloudformation.StackStatusUpdateComplete,
 				cloudformation.StackStatusUpdateRollbackComplete:
 				*(*m.stacks)[i].StackStatus = cloudformation.StackStatusUpdateComplete
-				output = &cloudformation.UpdateStackOutput{StackId: &m.newStackID}
-				return
+				output.StackId = &m.newStackID
+				return &output, nil
 			}
 		}
 	}
-	return output, awserr.New(
+	return &output, awserr.New(
 		"ValidationError",
 		fmt.Sprintf("Stack with id %s does not exist", *input.StackName),
 		nil,
