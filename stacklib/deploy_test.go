@@ -13,11 +13,12 @@ import (
 )
 
 type mockDeploy struct {
-	newStackID    string
-	noUpdates     bool
 	capabilityIam bool
-	stacks        *[]cloudformation.Stack
 	cloudformationiface.CloudFormationAPI
+	newStackID      string
+	noUpdates       bool
+	stacks          *[]cloudformation.Stack
+	validateFailure bool
 }
 
 type fakeReadFile struct {
@@ -39,6 +40,13 @@ func testIamCapability(inputCapabilities []*string) (err error) {
 
 func (m mockDeploy) ValidateTemplate(*cloudformation.ValidateTemplateInput) (*cloudformation.ValidateTemplateOutput, error) {
 	output := cloudformation.ValidateTemplateOutput{}
+	if m.validateFailure {
+		return &output, awserr.New(
+			"ValidationError",
+			"Invalid template property or properties [BadProperty]",
+			nil,
+		)
+	}
 	if m.capabilityIam {
 		output.Capabilities = aws.StringSlice([]string{
 			cloudformation.CapabilityCapabilityIam,
@@ -141,14 +149,15 @@ func (f fakeReadFile) readFile(filename string) ([]byte, error) {
 
 func TestDeploy(t *testing.T) {
 	cases := []struct {
-		expectOutput  DeployOut
-		expectStacks  []cloudformation.Stack
-		expectSuccess bool
-		newStackID    string
-		noUpdates     bool
-		capabilityIam bool
-		stacks        []cloudformation.Stack
-		thisStack     Stack
+		expectOutput    DeployOut
+		expectStacks    []cloudformation.Stack
+		expectSuccess   bool
+		newStackID      string
+		noUpdates       bool
+		capabilityIam   bool
+		stacks          []cloudformation.Stack
+		thisStack       Stack
+		validateFailure bool
 	}{
 		{
 			newStackID: "test-stack/id2",
@@ -340,15 +349,23 @@ func TestDeploy(t *testing.T) {
 			expectSuccess: true,
 			capabilityIam: true,
 		},
+		{
+			thisStack:       Stack{StackName: "test-stack"},
+			stacks:          []cloudformation.Stack{},
+			expectStacks:    []cloudformation.Stack{},
+			expectSuccess:   false,
+			validateFailure: true,
+		},
 	}
 
 	for i, c := range cases {
 		theseStacks := cases[i].stacks
 		cfn = mockDeploy{
-			stacks:        &theseStacks,
-			newStackID:    c.newStackID,
-			noUpdates:     c.noUpdates,
-			capabilityIam: c.capabilityIam,
+			stacks:          &theseStacks,
+			newStackID:      c.newStackID,
+			noUpdates:       c.noUpdates,
+			capabilityIam:   c.capabilityIam,
+			validateFailure: c.validateFailure,
 		}
 
 		fakeIO := fakeReadFile{String: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`}
