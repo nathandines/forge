@@ -23,7 +23,7 @@ var rootCmd = &cobra.Command{
 Stack is a simple tool which makes deploying CloudFormation stacks a bit more
 friendly for continuous delivery environments.
 `,
-	Version: "v0.1.0-alpha",
+	Version: "v0.1.0-alpha1",
 }
 
 func init() {
