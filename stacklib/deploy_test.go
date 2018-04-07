@@ -152,21 +152,19 @@ func (f fakeReadFile) readFile(filename string) ([]byte, error) {
 
 func TestDeploy(t *testing.T) {
 	cases := []struct {
+		capabilityIam   bool
+		expectFailure   bool
 		expectOutput    DeployOut
 		expectStacks    []cloudformation.Stack
-		expectSuccess   bool
 		newStackID      string
 		noUpdates       bool
-		capabilityIam   bool
 		stacks          []cloudformation.Stack
 		thisStack       Stack
 		validateFailure bool
 	}{
+		// Create new stack with previously used name
 		{
 			newStackID: "test-stack/id2",
-			thisStack: Stack{
-				StackName: "test-stack",
-			},
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -196,14 +194,11 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 				},
 			},
-			expectSuccess: true,
 		},
+		// Create new stack where one did not previously exist
 		{
 			newStackID: "test-stack/id0",
-			thisStack: Stack{
-				StackName: "test-stack",
-			},
-			stacks: []cloudformation.Stack{},
+			stacks:     []cloudformation.Stack{},
 			expectStacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -211,12 +206,9 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 				},
 			},
-			expectSuccess: true,
 		},
+		// Update stack where one was previously created
 		{
-			thisStack: Stack{
-				StackName: "test-stack",
-			},
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -241,12 +233,9 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
 				},
 			},
-			expectSuccess: true,
 		},
+		// Test deployment against a non-deployable state
 		{
-			thisStack: Stack{
-				StackName: "test-stack",
-			},
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -271,12 +260,10 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusUpdateRollbackFailed),
 				},
 			},
-			expectSuccess: false,
+			expectFailure: true,
 		},
+		// Test successful behaviour when no updates are to be performed
 		{
-			thisStack: Stack{
-				StackName: "test-stack",
-			},
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -301,14 +288,11 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
 				},
 			},
-			expectSuccess: true,
-			noUpdates:     true,
-			expectOutput:  DeployOut{Message: "No updates are to be performed."},
+			noUpdates:    true,
+			expectOutput: DeployOut{Message: "No updates are to be performed."},
 		},
+		// Require CAPABILITY_IAM Stack Update
 		{
-			thisStack: Stack{
-				StackName: "test-stack",
-			},
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -333,15 +317,12 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
 				},
 			},
-			expectSuccess: true,
 			capabilityIam: true,
 		},
+		// Require CAPABILITY_IAM Stack Create
 		{
 			newStackID: "test-stack/id0",
-			thisStack: Stack{
-				StackName: "test-stack",
-			},
-			stacks: []cloudformation.Stack{},
+			stacks:     []cloudformation.Stack{},
 			expectStacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -349,14 +330,13 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 				},
 			},
-			expectSuccess: true,
 			capabilityIam: true,
 		},
+		// ValidateTemplate error
 		{
-			thisStack:       Stack{StackName: "test-stack"},
 			stacks:          []cloudformation.Stack{},
 			expectStacks:    []cloudformation.Stack{},
-			expectSuccess:   false,
+			expectFailure:   true,
 			validateFailure: true,
 		},
 	}
@@ -374,15 +354,22 @@ func TestDeploy(t *testing.T) {
 		fakeIO := fakeReadFile{String: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`}
 		readFile = fakeIO.readFile
 
-		c.thisStack.TemplateFile = "whatever.yml"
+		thisStack := c.thisStack
+		if thisStack == (Stack{}) {
+			thisStack = Stack{
+				StackName:    "test-stack",
+				TemplateFile: "whatever.yml",
+			}
+		}
 
-		output, err := c.thisStack.Deploy()
-		if err != nil && c.expectSuccess {
+		output, err := thisStack.Deploy()
+		switch {
+		case err == nil && c.expectFailure:
+			t.Errorf("%d, expected error, got success", i)
+		case err != nil && !c.expectFailure:
 			t.Fatalf("%d, unexpected error, %v", i, err)
 		}
-		if err == nil && !c.expectSuccess {
-			t.Errorf("%d, expected error, got success", i)
-		}
+
 		if e, g := c.expectOutput, output; e != g {
 			t.Errorf("%d, expected %+v info, got %+v", i, e, g)
 		}
