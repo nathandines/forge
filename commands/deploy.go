@@ -30,12 +30,12 @@ var deployCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		for {
-			if t := "No updates are to be performed."; output.Message == t {
-				fmt.Println(t)
-				break
-			}
+		if t := "No updates are to be performed."; output.Message == t {
+			fmt.Println(t)
+			return
+		}
 
+		for {
 			// Refresh Stack State
 			if err := stackResource.GetStackInfo(); err != nil {
 				log.Fatal(err)
@@ -47,9 +47,9 @@ var deployCmd = &cobra.Command{
 			switch {
 			case stackInProgressRegexp.MatchString(status):
 			case status == cloudformation.StackStatusCreateComplete:
-				os.Exit(0)
+				return
 			case status == cloudformation.StackStatusUpdateComplete:
-				os.Exit(0)
+				return
 			default:
 				os.Exit(1)
 			}

@@ -13,9 +13,10 @@ import (
 )
 
 type mockDeploy struct {
-	newStackID string
-	noUpdates  bool
-	stacks     *[]cloudformation.Stack
+	newStackID    string
+	noUpdates     bool
+	capabilityIam bool
+	stacks        *[]cloudformation.Stack
 	cloudformationiface.CloudFormationAPI
 }
 
@@ -23,16 +24,41 @@ type fakeReadFile struct {
 	String string
 }
 
-func (m mockDeploy) ValidateTemplate(*cloudformation.ValidateTemplateInput) (output *cloudformation.ValidateTemplateOutput, err error) {
-	return
+func testIamCapability(inputCapabilities []*string) (err error) {
+	for _, c := range inputCapabilities {
+		if *c == cloudformation.CapabilityCapabilityIam {
+			return err
+		}
+	}
+	return awserr.New(
+		cloudformation.ErrCodeInsufficientCapabilitiesException,
+		"Requires capabilities : [CAPABILITY_IAM]",
+		nil,
+	)
 }
 
-func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (output *cloudformation.CreateStackOutput, err error) {
+func (m mockDeploy) ValidateTemplate(*cloudformation.ValidateTemplateInput) (*cloudformation.ValidateTemplateOutput, error) {
+	output := cloudformation.ValidateTemplateOutput{}
+	if m.capabilityIam {
+		output.Capabilities = aws.StringSlice([]string{
+			cloudformation.CapabilityCapabilityIam,
+		})
+	}
+	return &output, nil
+}
+
+func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (*cloudformation.CreateStackOutput, error) {
+	output := cloudformation.CreateStackOutput{}
+	if m.capabilityIam {
+		if err := testIamCapability(input.Capabilities); err != nil {
+			return &output, err
+		}
+	}
 	for i := 0; i < len(*m.stacks); i++ {
 		if *(*m.stacks)[i].StackName == *input.StackName &&
 			*(*m.stacks)[i].StackStatus != cloudformation.StackStatusDeleteComplete {
-			return output, awserr.New(
-				"AlreadyExistsException",
+			return &output, awserr.New(
+				cloudformation.ErrCodeAlreadyExistsException,
 				fmt.Sprintf("Stack [%s] already exists", *input.StackName),
 				nil,
 			)
@@ -44,11 +70,16 @@ func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (output 
 		StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 	}
 	*m.stacks = append(*m.stacks, thisStack)
-	output = &cloudformation.CreateStackOutput{StackId: &m.newStackID}
-	return
+	output.StackId = &m.newStackID
+	return &output, nil
 }
 
 func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (output *cloudformation.UpdateStackOutput, err error) {
+	if m.capabilityIam {
+		if err := testIamCapability(input.Capabilities); err != nil {
+			return output, err
+		}
+	}
 	if m.noUpdates {
 		return output, awserr.New(
 			"ValidationError",
@@ -115,6 +146,7 @@ func TestDeploy(t *testing.T) {
 		expectSuccess bool
 		newStackID    string
 		noUpdates     bool
+		capabilityIam bool
 		stacks        []cloudformation.Stack
 		thisStack     Stack
 	}{
@@ -261,19 +293,65 @@ func TestDeploy(t *testing.T) {
 			noUpdates:     true,
 			expectOutput:  DeployOut{Message: "No updates are to be performed."},
 		},
+		{
+			thisStack: Stack{
+				StackName: "test-stack",
+			},
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+				},
+			},
+			expectSuccess: true,
+			capabilityIam: true,
+		},
+		{
+			newStackID: "test-stack/id0",
+			thisStack: Stack{
+				StackName: "test-stack",
+			},
+			stacks: []cloudformation.Stack{},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectSuccess: true,
+			capabilityIam: true,
+		},
 	}
 
 	for i, c := range cases {
 		theseStacks := cases[i].stacks
 		cfn = mockDeploy{
-			stacks:     &theseStacks,
-			newStackID: c.newStackID,
-			noUpdates:  c.noUpdates,
+			stacks:        &theseStacks,
+			newStackID:    c.newStackID,
+			noUpdates:     c.noUpdates,
+			capabilityIam: c.capabilityIam,
 		}
 
-		fakeIO := fakeReadFile{
-			String: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
-		}
+		fakeIO := fakeReadFile{String: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`}
 		readFile = fakeIO.readFile
 
 		c.thisStack.TemplateFile = "whatever.yml"
