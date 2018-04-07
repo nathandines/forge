@@ -116,7 +116,9 @@ func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (*cloudf
 	)
 }
 
-func (m mockDeploy) DescribeStacks(input *cloudformation.DescribeStacksInput) (output *cloudformation.DescribeStacksOutput, err error) {
+func (m mockDeploy) DescribeStacks(input *cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
+	var err error
+	output := cloudformation.DescribeStacksOutput{}
 	outputStacks := []*cloudformation.Stack{}
 	for i := 0; i < len(*m.stacks); i++ {
 		if s := *input.StackName; s != "" {
@@ -124,13 +126,13 @@ func (m mockDeploy) DescribeStacks(input *cloudformation.DescribeStacksInput) (o
 				(s == *(*m.stacks)[i].StackName &&
 					*(*m.stacks)[i].StackStatus != cloudformation.StackStatusDeleteComplete) {
 				outputStacks = append(outputStacks, &(*m.stacks)[i])
-				output = &cloudformation.DescribeStacksOutput{Stacks: outputStacks}
-				return
+				output.Stacks = outputStacks
+				return &output, err
 			}
 		} else {
 			outputStacks = append(outputStacks, &(*m.stacks)[i])
-			output = &cloudformation.DescribeStacksOutput{Stacks: outputStacks}
-			return
+			output.Stacks = outputStacks
+			return &output, err
 		}
 	}
 	if *input.StackName != "" {
@@ -140,7 +142,7 @@ func (m mockDeploy) DescribeStacks(input *cloudformation.DescribeStacksInput) (o
 			nil,
 		)
 	}
-	return
+	return &output, err
 }
 
 func (f fakeReadFile) readFile(filename string) ([]byte, error) {
