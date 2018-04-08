@@ -9,7 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
-var readFile = ioutil.ReadFile
+var readTemplate = ioutil.ReadFile
+var readTags = ioutil.ReadFile
 
 // DeployOut provides a controlled format for information to be passed out of
 // the Deploy function
@@ -19,7 +20,7 @@ type DeployOut struct {
 
 // Deploy will create or update the stack (depending on its current state)
 func (s *Stack) Deploy() (output DeployOut, err error) {
-	templateBody, err := readFile(s.TemplateFile)
+	templateBody, err := readTemplate(s.TemplateFile)
 	if err != nil {
 		return output, err
 	}
@@ -46,6 +47,18 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 		}
 	}
 
+	var tags []*cloudformation.Tag
+	if s.TagsFile != "" {
+		rawTagData, err := readTags(s.TagsFile)
+		if err != nil {
+			return output, err
+		}
+		tags, err = parseTags(string(rawTagData))
+		if err != nil {
+			return output, err
+		}
+	}
+
 	if s.StackInfo == nil {
 		_, err := cfn.CreateStack(
 			&cloudformation.CreateStackInput{
@@ -53,6 +66,7 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 				TemplateBody: aws.String(string(templateBody)),
 				OnFailure:    aws.String("DELETE"),
 				Capabilities: validationResult.Capabilities,
+				Tags:         tags,
 			},
 		)
 		if err != nil {
@@ -64,6 +78,7 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 				StackName:    aws.String(s.StackID),
 				TemplateBody: aws.String(string(templateBody)),
 				Capabilities: validationResult.Capabilities,
+				Tags:         tags,
 			},
 		)
 		if err != nil {

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -25,6 +27,37 @@ type mockDeploy struct {
 
 type fakeReadFile struct {
 	String string
+}
+
+type fakeStack struct {
+	StackName, StackID, StackStatus string
+	Tags                            []fakeTag
+}
+
+type fakeTag struct {
+	Key, Value string
+}
+
+type byKey []fakeTag
+
+func (t byKey) Len() int           { return len(t) }
+func (t byKey) Less(i, j int) bool { return t[i].Key < t[j].Key }
+func (t byKey) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
+
+func genFakeStackData(realStack cloudformation.Stack) fakeStack {
+	output := fakeStack{
+		StackName:   *realStack.StackName,
+		StackID:     *realStack.StackId,
+		StackStatus: *realStack.StackStatus,
+	}
+	for _, t := range realStack.Tags {
+		output.Tags = append(output.Tags, fakeTag{
+			Key:   *t.Key,
+			Value: *t.Value,
+		})
+	}
+	sort.Sort(byKey(output.Tags))
+	return output
 }
 
 func testIamCapability(inputCapabilities []*string) (err error) {
@@ -88,6 +121,7 @@ func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (*cloudf
 		StackName:   input.StackName,
 		StackId:     aws.String(m.newStackID),
 		StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+		Tags:        input.Tags,
 	}
 	*m.stacks = append(*m.stacks, thisStack)
 	output.StackId = &m.newStackID
@@ -118,6 +152,7 @@ func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (*cloudf
 				cloudformation.StackStatusUpdateComplete,
 				cloudformation.StackStatusUpdateRollbackComplete:
 				*(*m.stacks)[i].StackStatus = cloudformation.StackStatusUpdateComplete
+				(*m.stacks)[i].Tags = input.Tags
 				output.StackId = &m.newStackID
 				return &output, nil
 			}
@@ -179,14 +214,15 @@ func TestDeploy(t *testing.T) {
 		capabilityIam bool
 		failCreate    bool
 		failDescribe  bool
+		failValidate  bool
 		expectFailure bool
 		expectOutput  DeployOut
 		expectStacks  []cloudformation.Stack
 		newStackID    string
 		noUpdates     bool
 		stacks        []cloudformation.Stack
+		tagInput      string
 		thisStack     Stack
-		failValidate  bool
 	}{
 		// Create new stack with previously used name
 		{
@@ -380,6 +416,45 @@ func TestDeploy(t *testing.T) {
 			expectFailure: true,
 			failValidate:  true,
 		},
+		// Create stack with tags
+		{
+			newStackID: "test-stack/id0",
+			tagInput:   `{"TestKey1":"TestValue1","TestKey2":"TestValue2"}`,
+			stacks:     []cloudformation.Stack{},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+					Tags: []*cloudformation.Tag{
+						{Key: aws.String("TestKey1"), Value: aws.String("TestValue1")},
+						{Key: aws.String("TestKey2"), Value: aws.String("TestValue2")},
+					},
+				},
+			},
+		},
+		// Update stack, adding tags
+		{
+			tagInput: `{"TestKey1":"TestValue1","TestKey2":"TestValue2"}`,
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+					Tags: []*cloudformation.Tag{
+						{Key: aws.String("TestKey1"), Value: aws.String("TestValue1")},
+						{Key: aws.String("TestKey2"), Value: aws.String("TestValue2")},
+					},
+				},
+			},
+		},
 	}
 
 	for i, c := range cases {
@@ -394,13 +469,21 @@ func TestDeploy(t *testing.T) {
 			stacks:        &theseStacks,
 		}
 
-		fakeIO := fakeReadFile{String: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`}
-		readFile = fakeIO.readFile
+		fakeTemplate := fakeReadFile{String: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`}
+		readTemplate = fakeTemplate.readFile
+
+		tagsFile := ""
+		if c.tagInput != "" {
+			fakeTags := fakeReadFile{String: c.tagInput}
+			readTags = fakeTags.readFile
+			tagsFile = "whatever_tags.yml"
+		}
 
 		thisStack := c.thisStack
 		if thisStack == (Stack{}) {
 			thisStack = Stack{
 				StackName:    "test-stack",
+				TagsFile:     tagsFile,
 				TemplateFile: "whatever.yml",
 			}
 		}
@@ -418,17 +501,9 @@ func TestDeploy(t *testing.T) {
 		}
 
 		for j := 0; j < len(c.expectStacks); j++ {
-			e := struct{ StackName, StackID, StackStatus string }{
-				*c.expectStacks[j].StackName,
-				*c.expectStacks[j].StackId,
-				*c.expectStacks[j].StackStatus,
-			}
-			g := struct{ StackName, StackID, StackStatus string }{
-				*theseStacks[j].StackName,
-				*theseStacks[j].StackId,
-				*theseStacks[j].StackStatus,
-			}
-			if e != g {
+			e := genFakeStackData(c.expectStacks[j])
+			g := genFakeStackData(theseStacks[j])
+			if !reflect.DeepEqual(e, g) {
 				t.Errorf("%d, expected %+v, got %+v", i, e, g)
 			}
 		}
