@@ -85,5 +85,14 @@ func init() {
 	// 	"Path to the file which contains the parameters for this stack",
 	// )
 	// deployCmd.MarkFlagFilename("parameters-file")
+
+	deployCmd.PersistentFlags().StringVar(
+		&stackResource.TagsFile,
+		"tags-file",
+		"",
+		"Path to the file which contains the tags for this stack",
+	)
+	deployCmd.MarkFlagFilename("parameters-file")
+
 	rootCmd.AddCommand(deployCmd)
 }
