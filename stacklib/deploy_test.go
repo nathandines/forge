@@ -222,6 +222,7 @@ func TestDeploy(t *testing.T) {
 		noUpdates     bool
 		stacks        []cloudformation.Stack
 		tagInput      string
+		tagsFile      string
 		thisStack     Stack
 	}{
 		// Create new stack with previously used name
@@ -420,6 +421,7 @@ func TestDeploy(t *testing.T) {
 		{
 			newStackID: "test-stack/id0",
 			tagInput:   `{"TestKey1":"TestValue1","TestKey2":"TestValue2"}`,
+			tagsFile:   "tags.json",
 			stacks:     []cloudformation.Stack{},
 			expectStacks: []cloudformation.Stack{
 				{
@@ -436,6 +438,7 @@ func TestDeploy(t *testing.T) {
 		// Update stack, adding tags
 		{
 			tagInput: `{"TestKey1":"TestValue1","TestKey2":"TestValue2"}`,
+			tagsFile: "tags.json",
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -452,6 +455,55 @@ func TestDeploy(t *testing.T) {
 						{Key: aws.String("TestKey1"), Value: aws.String("TestValue1")},
 						{Key: aws.String("TestKey2"), Value: aws.String("TestValue2")},
 					},
+				},
+			},
+		},
+		// Update stack without tags file, don't remove tags
+		{
+			tagsFile: "",
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+					Tags: []*cloudformation.Tag{
+						{Key: aws.String("TestKey1"), Value: aws.String("TestValue1")},
+						{Key: aws.String("TestKey2"), Value: aws.String("TestValue2")},
+					},
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+					Tags: []*cloudformation.Tag{
+						{Key: aws.String("TestKey1"), Value: aws.String("TestValue1")},
+						{Key: aws.String("TestKey2"), Value: aws.String("TestValue2")},
+					},
+				},
+			},
+		},
+		// Update stack, remove tags
+		{
+			tagsFile: "tags.json",
+			tagInput: "{}",
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+					Tags: []*cloudformation.Tag{
+						{Key: aws.String("TestKey1"), Value: aws.String("TestValue1")},
+						{Key: aws.String("TestKey2"), Value: aws.String("TestValue2")},
+					},
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
 				},
 			},
 		},
@@ -472,18 +524,16 @@ func TestDeploy(t *testing.T) {
 		fakeTemplate := fakeReadFile{String: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`}
 		readTemplate = fakeTemplate.readFile
 
-		tagsFile := ""
-		if c.tagInput != "" {
+		if c.tagsFile != "" {
 			fakeTags := fakeReadFile{String: c.tagInput}
 			readTags = fakeTags.readFile
-			tagsFile = "whatever_tags.yml"
 		}
 
 		thisStack := c.thisStack
 		if thisStack == (Stack{}) {
 			thisStack = Stack{
 				StackName:    "test-stack",
-				TagsFile:     tagsFile,
+				TagsFile:     c.tagsFile,
 				TemplateFile: "whatever.yml",
 			}
 		}
