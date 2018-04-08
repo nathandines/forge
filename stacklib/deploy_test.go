@@ -222,7 +222,6 @@ func TestDeploy(t *testing.T) {
 		noUpdates     bool
 		stacks        []cloudformation.Stack
 		tagInput      string
-		tagsFile      string
 		thisStack     Stack
 	}{
 		// Create new stack with previously used name
@@ -421,7 +420,6 @@ func TestDeploy(t *testing.T) {
 		{
 			newStackID: "test-stack/id0",
 			tagInput:   `{"TestKey1":"TestValue1","TestKey2":"TestValue2"}`,
-			tagsFile:   "tags.json",
 			stacks:     []cloudformation.Stack{},
 			expectStacks: []cloudformation.Stack{
 				{
@@ -438,7 +436,6 @@ func TestDeploy(t *testing.T) {
 		// Update stack, adding tags
 		{
 			tagInput: `{"TestKey1":"TestValue1","TestKey2":"TestValue2"}`,
-			tagsFile: "tags.json",
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -460,7 +457,6 @@ func TestDeploy(t *testing.T) {
 		},
 		// Update stack without tags file, don't remove tags
 		{
-			tagsFile: "",
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -486,7 +482,6 @@ func TestDeploy(t *testing.T) {
 		},
 		// Update stack, remove tags
 		{
-			tagsFile: "tags.json",
 			tagInput: "{}",
 			stacks: []cloudformation.Stack{
 				{
@@ -521,20 +516,12 @@ func TestDeploy(t *testing.T) {
 			stacks:        &theseStacks,
 		}
 
-		fakeTemplate := fakeReadFile{String: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`}
-		readTemplate = fakeTemplate.readFile
-
-		if c.tagsFile != "" {
-			fakeTags := fakeReadFile{String: c.tagInput}
-			readTags = fakeTags.readFile
-		}
-
 		thisStack := c.thisStack
 		if thisStack == (Stack{}) {
 			thisStack = Stack{
 				StackName:    "test-stack",
-				TagsFile:     c.tagsFile,
-				TemplateFile: "whatever.yml",
+				TagsBody:     c.tagInput,
+				TemplateBody: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
 			}
 		}
 

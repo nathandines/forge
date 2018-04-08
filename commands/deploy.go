@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -10,10 +11,36 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var templateFile string
+var tagsFile string
+
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "Deploy a CloudFormation Stack",
 	Run: func(cmd *cobra.Command, args []string) {
+		// Read template-file
+		if templateFile == "" {
+			if err := cmd.Usage(); err != nil {
+				log.Fatal(err)
+			}
+			fmt.Printf("\nArgument 'template-file' is required\n")
+			os.Exit(1)
+		}
+		templateBody, err := ioutil.ReadFile(templateFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		stackResource.TemplateBody = string(templateBody)
+
+		// Read tags-file
+		if tagsFile != "" {
+			tagsBody, err := ioutil.ReadFile(tagsFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			stackResource.TagsBody = string(tagsBody)
+		}
+
 		// Populate Stack ID
 		// Deliberately ignore errors here
 		stackResource.GetStackInfo()
@@ -69,7 +96,7 @@ func init() {
 	// deployCmd.MarkFlagFilename("stack-policy-file")
 
 	deployCmd.PersistentFlags().StringVarP(
-		&stackResource.TemplateFile,
+		&templateFile,
 		"template-file",
 		"t",
 		"",
@@ -87,12 +114,12 @@ func init() {
 	// deployCmd.MarkFlagFilename("parameters-file")
 
 	deployCmd.PersistentFlags().StringVar(
-		&stackResource.TagsFile,
+		&tagsFile,
 		"tags-file",
 		"",
 		"Path to the file which contains the tags for this stack",
 	)
-	deployCmd.MarkFlagFilename("parameters-file")
+	deployCmd.MarkFlagFilename("tags-file")
 
 	rootCmd.AddCommand(deployCmd)
 }
