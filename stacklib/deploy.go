@@ -57,6 +57,8 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 		if err != nil {
 			return output, err
 		}
+	} else if s.StackInfo != nil {
+		tags = s.StackInfo.Tags
 	}
 
 	if s.StackInfo == nil {
