@@ -11,8 +11,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var templateFile string
 var tagsFile string
+var templateFile string
+var parametersFile string
 
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
@@ -39,6 +40,15 @@ var deployCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 			stackResource.TagsBody = string(tagsBody)
+		}
+
+		// Read tags-file
+		if parametersFile != "" {
+			parametersBody, err := ioutil.ReadFile(parametersFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			stackResource.ParametersBody = string(parametersBody)
 		}
 
 		// Populate Stack ID
@@ -87,14 +97,6 @@ var deployCmd = &cobra.Command{
 }
 
 func init() {
-	// deployCmd.PersistentFlags().StringVar(
-	// 	&stackResource.StackPolicyFile,
-	// 	"stack-policy-file",
-	// 	"",
-	// 	"Path to the stack policy which should be applied to this CloudFormation stack",
-	// )
-	// deployCmd.MarkFlagFilename("stack-policy-file")
-
 	deployCmd.PersistentFlags().StringVarP(
 		&templateFile,
 		"template-file",
@@ -104,14 +106,14 @@ func init() {
 	)
 	deployCmd.MarkFlagFilename("template-file")
 
-	// deployCmd.PersistentFlags().StringVarP(
-	// 	&stackResource.ParametersFile,
-	// 	"parameters-file",
-	// 	"p",
-	// 	"",
-	// 	"Path to the file which contains the parameters for this stack",
-	// )
-	// deployCmd.MarkFlagFilename("parameters-file")
+	deployCmd.PersistentFlags().StringVarP(
+		&parametersFile,
+		"parameters-file",
+		"p",
+		"",
+		"Path to the file which contains the parameters for this stack",
+	)
+	deployCmd.MarkFlagFilename("parameters-file")
 
 	deployCmd.PersistentFlags().StringVar(
 		&tagsFile,

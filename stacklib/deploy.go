@@ -48,6 +48,24 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 		tags = s.StackInfo.Tags
 	}
 
+	var inputParams []*cloudformation.Parameter
+	if s.ParametersBody != "" {
+		parameters, err := parseParameters(s.ParametersBody)
+		if err != nil {
+			return output, err
+		}
+
+	INPUT_PARAMETERS:
+		for i := 0; i < len(parameters); i++ {
+			for j := 0; j < len((*validationResult).Parameters); j++ {
+				if *parameters[i].ParameterKey == *(*validationResult).Parameters[j].ParameterKey {
+					inputParams = append(inputParams, parameters[i])
+					continue INPUT_PARAMETERS
+				}
+			}
+		}
+	}
+
 	if s.StackInfo == nil {
 		_, err := cfn.CreateStack(
 			&cloudformation.CreateStackInput{
@@ -56,6 +74,7 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 				OnFailure:    aws.String("DELETE"),
 				Capabilities: validationResult.Capabilities,
 				Tags:         tags,
+				Parameters:   inputParams,
 			},
 		)
 		if err != nil {
@@ -68,6 +87,7 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 				TemplateBody: aws.String(s.TemplateBody),
 				Capabilities: validationResult.Capabilities,
 				Tags:         tags,
+				Parameters:   inputParams,
 			},
 		)
 		if err != nil {

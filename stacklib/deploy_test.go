@@ -15,13 +15,14 @@ import (
 )
 
 type mockDeploy struct {
-	capabilityIam bool
-	failCreate    bool
-	failDescribe  bool
-	failValidate  bool
-	newStackID    string
-	noUpdates     bool
-	stacks        *[]cloudformation.Stack
+	capabilityIam      bool
+	failCreate         bool
+	failDescribe       bool
+	failValidate       bool
+	newStackID         string
+	noUpdates          bool
+	requiredParameters []string
+	stacks             *[]cloudformation.Stack
 	cloudformationiface.CloudFormationAPI
 }
 
@@ -32,10 +33,15 @@ type fakeReadFile struct {
 type fakeStack struct {
 	StackName, StackID, StackStatus string
 	Tags                            []fakeTag
+	Parameters                      []fakeParameter
 }
 
 type fakeTag struct {
 	Key, Value string
+}
+
+type fakeParameter struct {
+	ParameterKey, ParameterValue string
 }
 
 type byKey []fakeTag
@@ -43,6 +49,12 @@ type byKey []fakeTag
 func (t byKey) Len() int           { return len(t) }
 func (t byKey) Less(i, j int) bool { return t[i].Key < t[j].Key }
 func (t byKey) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
+
+type byParameterKey []fakeParameter
+
+func (t byParameterKey) Len() int           { return len(t) }
+func (t byParameterKey) Less(i, j int) bool { return t[i].ParameterKey < t[j].ParameterKey }
+func (t byParameterKey) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
 
 func genFakeStackData(realStack cloudformation.Stack) fakeStack {
 	output := fakeStack{
@@ -57,6 +69,13 @@ func genFakeStackData(realStack cloudformation.Stack) fakeStack {
 		})
 	}
 	sort.Sort(byKey(output.Tags))
+	for _, p := range realStack.Parameters {
+		output.Parameters = append(output.Parameters, fakeParameter{
+			ParameterKey:   *p.ParameterKey,
+			ParameterValue: *p.ParameterValue,
+		})
+	}
+	sort.Sort(byParameterKey(output.Parameters))
 	return output
 }
 
@@ -75,7 +94,6 @@ func testIamCapability(inputCapabilities []*string) (err error) {
 
 func (m mockDeploy) ValidateTemplate(*cloudformation.ValidateTemplateInput) (*cloudformation.ValidateTemplateOutput, error) {
 	output := cloudformation.ValidateTemplateOutput{}
-
 	if m.failValidate {
 		return &output, awserr.New(
 			"ValidationError",
@@ -87,6 +105,10 @@ func (m mockDeploy) ValidateTemplate(*cloudformation.ValidateTemplateInput) (*cl
 		output.Capabilities = aws.StringSlice([]string{
 			cloudformation.CapabilityCapabilityIam,
 		})
+	}
+	for _, r := range m.requiredParameters {
+		thisParameter := cloudformation.TemplateParameter{ParameterKey: aws.String(r)}
+		output.Parameters = append(output.Parameters, &thisParameter)
 	}
 	return &output, nil
 }
@@ -102,11 +124,29 @@ func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (*cloudf
 		)
 	}
 
+	// Fail if IAM capabilities are required, but not supplied
 	if m.capabilityIam {
 		if err := testIamCapability(input.Capabilities); err != nil {
 			return &output, err
 		}
 	}
+
+	// Check that all required parameters are supplied
+REQUIRED_PARAMETERS:
+	for _, r := range m.requiredParameters {
+		for _, s := range input.Parameters {
+			if r == *s.ParameterKey {
+				continue REQUIRED_PARAMETERS
+			}
+		}
+		return &output, awserr.New(
+			"ValidationError",
+			fmt.Sprintf("Parameters: [%s] must have values", r),
+			nil,
+		)
+	}
+
+	// Check for existing stack, fail if found
 	for i := 0; i < len(*m.stacks); i++ {
 		if *(*m.stacks)[i].StackName == *input.StackName &&
 			*(*m.stacks)[i].StackStatus != cloudformation.StackStatusDeleteComplete {
@@ -117,13 +157,16 @@ func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (*cloudf
 			)
 		}
 	}
+
 	thisStack := cloudformation.Stack{
 		StackName:   input.StackName,
 		StackId:     aws.String(m.newStackID),
 		StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 		Tags:        input.Tags,
+		Parameters:  input.Parameters,
 	}
 	*m.stacks = append(*m.stacks, thisStack)
+
 	output.StackId = &m.newStackID
 	return &output, nil
 }
@@ -136,6 +179,7 @@ func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (*cloudf
 		}
 	}
 
+	// Throw error if no updates are to be performed for stack
 	if m.noUpdates {
 		return &output, awserr.New(
 			"ValidationError",
@@ -144,6 +188,24 @@ func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (*cloudf
 		)
 	}
 
+	// Check that all required parameters are supplied
+REQUIRED_PARAMETERS:
+	for _, r := range m.requiredParameters {
+		for _, s := range input.Parameters {
+			if r == *s.ParameterKey {
+				continue REQUIRED_PARAMETERS
+			}
+		}
+		return &output, awserr.New(
+			"ValidationError",
+			fmt.Sprintf("Parameters: [%s] must have values", r),
+			nil,
+		)
+	}
+
+	// For each existing stack, match against the stack ID first, then the stack
+	// name. If found and the stack is in a good state, set values against it
+	// and return
 	for i := 0; i < len(*m.stacks); i++ {
 		if s := *input.StackName; s == *(*m.stacks)[i].StackId ||
 			s == *(*m.stacks)[i].StackName {
@@ -151,8 +213,11 @@ func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (*cloudf
 			case cloudformation.StackStatusCreateComplete,
 				cloudformation.StackStatusUpdateComplete,
 				cloudformation.StackStatusUpdateRollbackComplete:
+
 				*(*m.stacks)[i].StackStatus = cloudformation.StackStatusUpdateComplete
 				(*m.stacks)[i].Tags = input.Tags
+				(*m.stacks)[i].Parameters = input.Parameters
+
 				output.StackId = &m.newStackID
 				return &output, nil
 			}
@@ -211,18 +276,20 @@ func (f fakeReadFile) readFile(filename string) ([]byte, error) {
 
 func TestDeploy(t *testing.T) {
 	cases := []struct {
-		capabilityIam bool
-		failCreate    bool
-		failDescribe  bool
-		failValidate  bool
-		expectFailure bool
-		expectOutput  DeployOut
-		expectStacks  []cloudformation.Stack
-		newStackID    string
-		noUpdates     bool
-		stacks        []cloudformation.Stack
-		tagInput      string
-		thisStack     Stack
+		capabilityIam      bool
+		failCreate         bool
+		failDescribe       bool
+		failValidate       bool
+		expectFailure      bool
+		expectOutput       DeployOut
+		expectStacks       []cloudformation.Stack
+		newStackID         string
+		noUpdates          bool
+		parameterInput     string
+		requiredParameters []string
+		stacks             []cloudformation.Stack
+		tagInput           string
+		thisStack          Stack
 	}{
 		// Create new stack with previously used name
 		{
@@ -502,26 +569,141 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
+		// Create stack with parameters
+		{
+			newStackID:         "test-stack/id0",
+			parameterInput:     `{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`,
+			requiredParameters: []string{"TestParam1", "TestParam2"},
+			stacks:             []cloudformation.Stack{},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+					Parameters: []*cloudformation.Parameter{
+						{ParameterKey: aws.String("TestParam1"), ParameterValue: aws.String("TestValue1")},
+						{ParameterKey: aws.String("TestParam2"), ParameterValue: aws.String("TestValue2")},
+					},
+				},
+			},
+		},
+		// Update stack, adding parameters
+		{
+			parameterInput:     `{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`,
+			requiredParameters: []string{"TestParam1", "TestParam2"},
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+					Parameters: []*cloudformation.Parameter{
+						{ParameterKey: aws.String("TestParam1"), ParameterValue: aws.String("TestValue1")},
+						{ParameterKey: aws.String("TestParam2"), ParameterValue: aws.String("TestValue2")},
+					},
+				},
+			},
+		},
+		// Update stack with subset of parameters
+		{
+			parameterInput:     `{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`,
+			requiredParameters: []string{"TestParam1"},
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+					Parameters: []*cloudformation.Parameter{
+						{ParameterKey: aws.String("TestParam1"), ParameterValue: aws.String("TestValue1")},
+						{ParameterKey: aws.String("TestParam2"), ParameterValue: aws.String("TestValue2")},
+					},
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+					Parameters: []*cloudformation.Parameter{
+						{ParameterKey: aws.String("TestParam1"), ParameterValue: aws.String("TestValue1")},
+					},
+				},
+			},
+		},
+		// Create stack with subset of parameters
+		{
+			newStackID:         "test-stack/id0",
+			parameterInput:     `{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`,
+			requiredParameters: []string{"TestParam1"},
+			stacks:             []cloudformation.Stack{},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+					Parameters: []*cloudformation.Parameter{
+						{ParameterKey: aws.String("TestParam1"), ParameterValue: aws.String("TestValue1")},
+					},
+				},
+			},
+		},
+		// Create stack, missing required parameters
+		{
+			newStackID:         "test-stack/id0",
+			parameterInput:     `{"TestParam2":"TestValue2"}`,
+			requiredParameters: []string{"TestParam1"},
+			stacks:             []cloudformation.Stack{},
+			expectStacks:       []cloudformation.Stack{},
+			expectFailure:      true,
+		},
+		// Update stack, missing required parameters
+		{
+			parameterInput:     `{"TestParam2":"TestValue2"}`,
+			requiredParameters: []string{"TestParam1"},
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectFailure: true,
+		},
 	}
 
 	for i, c := range cases {
 		theseStacks := cases[i].stacks
 		cfn = mockDeploy{
-			capabilityIam: c.capabilityIam,
-			failCreate:    c.failCreate,
-			failDescribe:  c.failDescribe,
-			failValidate:  c.failValidate,
-			newStackID:    c.newStackID,
-			noUpdates:     c.noUpdates,
-			stacks:        &theseStacks,
+			capabilityIam:      c.capabilityIam,
+			failCreate:         c.failCreate,
+			failDescribe:       c.failDescribe,
+			failValidate:       c.failValidate,
+			newStackID:         c.newStackID,
+			noUpdates:          c.noUpdates,
+			requiredParameters: c.requiredParameters,
+			stacks:             &theseStacks,
 		}
 
 		thisStack := c.thisStack
 		if thisStack == (Stack{}) {
 			thisStack = Stack{
-				StackName:    "test-stack",
-				TagsBody:     c.tagInput,
-				TemplateBody: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
+				ParametersBody: c.parameterInput,
+				StackName:      "test-stack",
+				TagsBody:       c.tagInput,
+				TemplateBody:   `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
 			}
 		}
 
