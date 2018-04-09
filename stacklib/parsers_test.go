@@ -184,7 +184,7 @@ func TestParseTagsErrors(t *testing.T) {
 	for i, c := range cases {
 		_, err := parseTags(c)
 		if err == nil {
-			t.Fatalf("%d, expected error, but got success", i)
+			t.Errorf("%d, expected error, but got success", i)
 		}
 	}
 }
@@ -274,7 +274,7 @@ func TestParseParameters(t *testing.T) {
 				},
 			},
 		},
-		// JSON Misc-List
+		// JSON String List
 		{
 			input: `{"ThisKey":["one","two"]}`,
 			expectedParameters: []*cloudformation.Parameter{
@@ -286,10 +286,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// YAML String List
 		{
-			input: `---
-				ThisKey:
-				- one
-				- two`,
+			input: "---\nThisKey:\n  - one\n  - two",
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -309,12 +306,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// YAML Misc-List
 		{
-			input: `---
-				ThisKey:
-				- one
-				- 2
-				- 123.456
-				- false`,
+			input: "---\nThisKey:\n  - one\n  - 2\n  - 123.456\n  - false",
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -360,11 +352,11 @@ func TestParseParameters(t *testing.T) {
                 String: Foobar
                 Int: 123
                 Float: 123.456
-				Boolean: true
-				List:
-				- one
-				- two
-				- three`,
+                Boolean: true
+                List:
+                    - one
+                    - two
+                    - three`,
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("String"),
@@ -429,7 +421,86 @@ func TestParseParametersErrors(t *testing.T) {
 	for i, c := range cases {
 		_, err := parseParameters(c)
 		if err == nil {
-			t.Fatalf("%d, expected error, but got success", i)
+			t.Errorf("%d, expected error, but got success", i)
+		}
+	}
+}
+
+func TestValueToStringDefault(t *testing.T) {
+	cases := []struct {
+		input       interface{}
+		expected    string
+		allowCommas bool
+		allowSlices bool
+	}{
+		{
+			input:    "foobar",
+			expected: "foobar",
+		},
+		// Converting int to float64, as this is how "github.com/ghodss/yaml"
+		// behaves
+		{
+			input:    float64(123),
+			expected: "123",
+		},
+		{
+			input:    123.456,
+			expected: "123.456",
+		},
+		{
+			input:    true,
+			expected: "true",
+		},
+		{
+			input:       "one,two",
+			expected:    "one,two",
+			allowCommas: true,
+		},
+		{
+			input:       []interface{}{"one", 2.123, true, "foobar"},
+			expected:    "one,2.123,true,foobar",
+			allowSlices: true,
+		},
+	}
+
+	for i, c := range cases {
+		var output string
+		if err := valueToString(c.input, &output, c.allowSlices, c.allowCommas); err != nil {
+			t.Fatalf("%d, unexpected error, %v", i, err)
+		}
+		if e, g := c.expected, output; e != g {
+			t.Errorf("%d, expected \"%s\", got \"%s\"", i, e, g)
+		}
+	}
+}
+
+func TestValueToStringErrors(t *testing.T) {
+	cases := []struct {
+		input       interface{}
+		allowCommas bool
+		allowSlices bool
+	}{
+		// Fail on slice with comma in a value; allow commas SHOULD NOT apply to
+		// values within a slice
+		{
+			input:       []interface{}{"one", 2.123, true, "foo,bar"},
+			allowSlices: true,
+			allowCommas: true,
+		},
+		{
+			input:       []interface{}{"one", "two"},
+			allowSlices: false,
+		},
+		{
+			input:       "foo,bar",
+			allowCommas: false,
+		},
+	}
+
+	for i, c := range cases {
+		var output string
+		if err := valueToString(c.input, &output, c.allowSlices, c.allowCommas); err == nil {
+			t.Errorf("%d, expected error, but got success", i)
 		}
 	}
 }
