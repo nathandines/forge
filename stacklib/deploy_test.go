@@ -94,7 +94,6 @@ func testIamCapability(inputCapabilities []*string) (err error) {
 
 func (m mockDeploy) ValidateTemplate(*cloudformation.ValidateTemplateInput) (*cloudformation.ValidateTemplateOutput, error) {
 	output := cloudformation.ValidateTemplateOutput{}
-
 	if m.failValidate {
 		return &output, awserr.New(
 			"ValidationError",
@@ -125,26 +124,29 @@ func (m mockDeploy) CreateStack(input *cloudformation.CreateStackInput) (*cloudf
 		)
 	}
 
+	// Fail if IAM capabilities are required, but not supplied
 	if m.capabilityIam {
 		if err := testIamCapability(input.Capabilities); err != nil {
 			return &output, err
 		}
 	}
 
+	// Check that all required parameters are supplied
 REQUIRED_PARAMETERS:
 	for _, r := range m.requiredParameters {
 		for _, s := range input.Parameters {
 			if r == *s.ParameterKey {
 				continue REQUIRED_PARAMETERS
 			}
-			return &output, awserr.New(
-				"ValidationError",
-				fmt.Sprintf("Parameters: [%s] must have values", r),
-				nil,
-			)
 		}
+		return &output, awserr.New(
+			"ValidationError",
+			fmt.Sprintf("Parameters: [%s] must have values", r),
+			nil,
+		)
 	}
 
+	// Check for existing stack, fail if found
 	for i := 0; i < len(*m.stacks); i++ {
 		if *(*m.stacks)[i].StackName == *input.StackName &&
 			*(*m.stacks)[i].StackStatus != cloudformation.StackStatusDeleteComplete {
@@ -155,13 +157,16 @@ REQUIRED_PARAMETERS:
 			)
 		}
 	}
+
 	thisStack := cloudformation.Stack{
 		StackName:   input.StackName,
 		StackId:     aws.String(m.newStackID),
 		StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 		Tags:        input.Tags,
+		Parameters:  input.Parameters,
 	}
 	*m.stacks = append(*m.stacks, thisStack)
+
 	output.StackId = &m.newStackID
 	return &output, nil
 }
@@ -174,6 +179,7 @@ func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (*cloudf
 		}
 	}
 
+	// Throw error if no updates are to be performed for stack
 	if m.noUpdates {
 		return &output, awserr.New(
 			"ValidationError",
@@ -182,20 +188,24 @@ func (m mockDeploy) UpdateStack(input *cloudformation.UpdateStackInput) (*cloudf
 		)
 	}
 
+	// Check that all required parameters are supplied
 REQUIRED_PARAMETERS:
 	for _, r := range m.requiredParameters {
 		for _, s := range input.Parameters {
 			if r == *s.ParameterKey {
 				continue REQUIRED_PARAMETERS
 			}
-			return &output, awserr.New(
-				"ValidationError",
-				fmt.Sprintf("Parameters: [%s] must have values", r),
-				nil,
-			)
 		}
+		return &output, awserr.New(
+			"ValidationError",
+			fmt.Sprintf("Parameters: [%s] must have values", r),
+			nil,
+		)
 	}
 
+	// For each existing stack, match against the stack ID first, then the stack
+	// name. If found and the stack is in a good state, set values against it
+	// and return
 	for i := 0; i < len(*m.stacks); i++ {
 		if s := *input.StackName; s == *(*m.stacks)[i].StackId ||
 			s == *(*m.stacks)[i].StackName {
@@ -203,8 +213,11 @@ REQUIRED_PARAMETERS:
 			case cloudformation.StackStatusCreateComplete,
 				cloudformation.StackStatusUpdateComplete,
 				cloudformation.StackStatusUpdateRollbackComplete:
+
 				*(*m.stacks)[i].StackStatus = cloudformation.StackStatusUpdateComplete
 				(*m.stacks)[i].Tags = input.Tags
+				(*m.stacks)[i].Parameters = input.Parameters
+
 				output.StackId = &m.newStackID
 				return &output, nil
 			}
@@ -667,27 +680,30 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 				},
 			},
+			expectFailure: true,
 		},
 	}
 
 	for i, c := range cases {
 		theseStacks := cases[i].stacks
 		cfn = mockDeploy{
-			capabilityIam: c.capabilityIam,
-			failCreate:    c.failCreate,
-			failDescribe:  c.failDescribe,
-			failValidate:  c.failValidate,
-			newStackID:    c.newStackID,
-			noUpdates:     c.noUpdates,
-			stacks:        &theseStacks,
+			capabilityIam:      c.capabilityIam,
+			failCreate:         c.failCreate,
+			failDescribe:       c.failDescribe,
+			failValidate:       c.failValidate,
+			newStackID:         c.newStackID,
+			noUpdates:          c.noUpdates,
+			requiredParameters: c.requiredParameters,
+			stacks:             &theseStacks,
 		}
 
 		thisStack := c.thisStack
 		if thisStack == (Stack{}) {
 			thisStack = Stack{
-				StackName:    "test-stack",
-				TagsBody:     c.tagInput,
-				TemplateBody: `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
+				ParametersBody: c.parameterInput,
+				StackName:      "test-stack",
+				TagsBody:       c.tagInput,
+				TemplateBody:   `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
 			}
 		}
 
