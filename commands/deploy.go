@@ -88,7 +88,8 @@ var deployCmd = &cobra.Command{
 			case status == cloudformation.StackStatusUpdateComplete:
 				return
 			default:
-				os.Exit(1)
+				fmt.Print("\n")
+				log.Fatal(fmt.Errorf("Stack deploy failed! Stack Status: %s", status))
 			}
 
 			time.Sleep(5 * time.Second)
