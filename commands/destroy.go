@@ -1,8 +1,8 @@
 package commands
 
 import (
+	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -39,9 +39,10 @@ var destroyCmd = &cobra.Command{
 			switch {
 			case stackInProgressRegexp.MatchString(status):
 			case status == cloudformation.StackStatusDeleteComplete:
-				os.Exit(0)
+				return
 			default:
-				os.Exit(1)
+				fmt.Print("\n")
+				log.Fatal(fmt.Errorf("Stack destroy failed! Stack Status: %s", status))
 			}
 
 			time.Sleep(5 * time.Second)

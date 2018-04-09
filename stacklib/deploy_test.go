@@ -1,9 +1,7 @@
 package stacklib
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"reflect"
 	"sort"
 	"testing"
@@ -24,10 +22,6 @@ type mockDeploy struct {
 	requiredParameters []string
 	stacks             *[]cloudformation.Stack
 	cloudformationiface.CloudFormationAPI
-}
-
-type fakeReadFile struct {
-	String string
 }
 
 type fakeStack struct {
@@ -269,20 +263,15 @@ func (m mockDeploy) DescribeStacks(input *cloudformation.DescribeStacksInput) (*
 	return &output, err
 }
 
-func (f fakeReadFile) readFile(filename string) ([]byte, error) {
-	buf := bytes.NewBufferString(f.String)
-	return ioutil.ReadAll(buf)
-}
-
 func TestDeploy(t *testing.T) {
 	cases := []struct {
 		capabilityIam      bool
-		failCreate         bool
-		failDescribe       bool
-		failValidate       bool
 		expectFailure      bool
 		expectOutput       DeployOut
 		expectStacks       []cloudformation.Stack
+		failCreate         bool
+		failDescribe       bool
+		failValidate       bool
 		newStackID         string
 		noUpdates          bool
 		parameterInput     string
