@@ -1,4 +1,4 @@
-package stacklib
+package forgelib
 
 import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"

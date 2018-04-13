@@ -1,6 +1,6 @@
 ---
 defaults: &defaults
-  working_directory: /go/src/github.com/nathandines/stack
+  working_directory: /go/src/github.com/nathandines/forge
   docker:
     - image: circleci/golang:latest
 
@@ -8,6 +8,7 @@ version: 2
 jobs:
   build:
     <<: *defaults
+
     environment:
       TEST_RESULTS: /tmp/test-results
 
@@ -27,7 +28,7 @@ jobs:
 
       # smoke test
       - run: make
-      - run: ./bin/stack --version
+      - run: ./bin/forge --version
 
       - store_artifacts:
           path: /tmp/test-results
@@ -43,6 +44,7 @@ jobs:
 
   release:
     <<: *defaults
+
     steps:
       - checkout
 
@@ -52,9 +54,9 @@ jobs:
       - run:
           name: Validate Tag Version
           command: |
-            stack_version="$(./bin/stack --version | grep -Po 'v\d+(?:\.\d+){2}(?:-[a-z]+\d?)?$')"
-            if [[ "$CIRCLE_TAG" != "$stack_version" ]]; then
-              echo "Tag version \"${CIRCLE_TAG}\" does not match binary version \"${stack_version}\""
+            forge_version="$(./bin/forge --version | grep -Po 'v\d+(?:\.\d+){2}(?:-[a-z]+\d?)?$')"
+            if [[ "$CIRCLE_TAG" != "$forge_version" ]]; then
+              echo "Tag version \"${CIRCLE_TAG}\" does not match binary version \"${forge_version}\""
               exit 1
             fi
             mkdir release
@@ -66,7 +68,7 @@ jobs:
             GOARCH: '386'
           command: &build_cmd |
             make deps
-            go build -v -o "release/stack_${CIRCLE_TAG}_${GOOS}_${GOARCH}${FILEEXT}"
+            go build -v -o "release/forge_${CIRCLE_TAG}_${GOOS}_${GOARCH}${FILEEXT}"
 
       - run:
           name: Build - Linux (64-bit)
@@ -89,13 +91,6 @@ jobs:
             GOOS: windows
             GOARCH: amd64
             FILEEXT: .exe
-          command: *build_cmd
-
-      - run:
-          name: Build - Darwin (32-bit)
-          environment:
-            GOOS: darwin
-            GOARCH: '386'
           command: *build_cmd
 
       - run:
