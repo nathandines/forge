@@ -1,6 +1,6 @@
 .PHONY: test clean deps lint gofmt govet godiff coverage
 
-bin/stack:
+bin/forge:
 	go build -o bin/forge
 
 test:
