@@ -1,4 +1,4 @@
-package stacklib
+package forgelib
 
 import (
 	"fmt"

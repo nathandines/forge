@@ -8,19 +8,19 @@ import (
 	"regexp"
 	"time"
 
-	stack "github.com/nathandines/stack/stacklib"
+	forge "github.com/nathandines/forge/forgelib"
 
 	"github.com/spf13/cobra"
 )
 
-var stackResource = stack.Stack{}
+var stack = forge.Stack{}
 var stackInProgressRegexp = regexp.MustCompile("^.*_IN_PROGRESS$")
 
 var rootCmd = &cobra.Command{
-	Use:   "stack",
-	Short: "Stack is a CD friendly CloudFormation deployment tool",
+	Use:   "forge",
+	Short: "Forge is a CD friendly CloudFormation deployment tool",
 	Long: `
-Stack is a simple tool which makes deploying CloudFormation stacks a bit more
+Forge is a simple tool which makes deploying CloudFormation stacks a bit more
 friendly for continuous delivery environments.
 `,
 	Version: "v0.1.0-alpha2",
@@ -28,14 +28,14 @@ friendly for continuous delivery environments.
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(
-		&stackResource.StackName,
+		&stack.StackName,
 		"stack-name",
 		"n",
 		"",
 		"Name of the stack to manage",
 	)
 	// rootCmd.PersistentFlags().StringVarP(
-	// 	&stackResource.RoleName,
+	// 	&stack.RoleName,
 	// 	"role-name",
 	// 	"r",
 	// 	"",
@@ -51,7 +51,7 @@ func Execute() {
 	}
 }
 
-func printStackEvents(s *stack.Stack, after *time.Time) {
+func printStackEvents(s *forge.Stack, after *time.Time) {
 	bunch, err := s.ListEvents(after)
 	if err != nil {
 		log.Fatal(err)

@@ -31,7 +31,7 @@ var deployCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		stackResource.TemplateBody = string(templateBody)
+		stack.TemplateBody = string(templateBody)
 
 		// Read tags-file
 		if tagsFile != "" {
@@ -39,7 +39,7 @@ var deployCmd = &cobra.Command{
 			if err != nil {
 				log.Fatal(err)
 			}
-			stackResource.TagsBody = string(tagsBody)
+			stack.TagsBody = string(tagsBody)
 		}
 
 		// Read tags-file
@@ -48,21 +48,21 @@ var deployCmd = &cobra.Command{
 			if err != nil {
 				log.Fatal(err)
 			}
-			stackResource.ParametersBody = string(parametersBody)
+			stack.ParametersBody = string(parametersBody)
 		}
 
 		// Populate Stack ID
 		// Deliberately ignore errors here
-		stackResource.GetStackInfo()
+		stack.GetStackInfo()
 
-		after, err := stackResource.GetLastEventTime()
+		after, err := stack.GetLastEventTime()
 		if err != nil {
 			// default to epoch as the time to look for events from
 			epoch := time.Unix(0, 0)
 			after = &epoch
 		}
 
-		output, err := stackResource.Deploy()
+		output, err := stack.Deploy()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -74,13 +74,13 @@ var deployCmd = &cobra.Command{
 
 		for {
 			// Refresh Stack State
-			if err := stackResource.GetStackInfo(); err != nil {
+			if err := stack.GetStackInfo(); err != nil {
 				log.Fatal(err)
 			}
 
-			printStackEvents(&stackResource, after)
+			printStackEvents(&stack, after)
 
-			status := *stackResource.StackInfo.StackStatus
+			status := *stack.StackInfo.StackStatus
 			switch {
 			case stackInProgressRegexp.MatchString(status):
 			case status == cloudformation.StackStatusCreateComplete:

@@ -1,14 +1,14 @@
 .PHONY: test clean deps lint gofmt govet godiff coverage
 
 bin/stack:
-	go build -o bin/stack
+	go build -o bin/forge
 
 test:
-	@cd stacklib && \
+	@cd forgelib && \
 		go test -v -cover -race
 
 coverage:
-	@cd stacklib && \
+	@cd forgelib && \
 		go test -coverprofile=../coverage.out
 	go tool cover -html=coverage.out
 

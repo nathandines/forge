@@ -14,28 +14,28 @@ var destroyCmd = &cobra.Command{
 	Short: "Destroy a CloudFormation Stack",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Populate Stack ID
-		if err := stackResource.GetStackInfo(); err != nil {
+		if err := stack.GetStackInfo(); err != nil {
 			log.Fatal(err)
 		}
 
-		after, err := stackResource.GetLastEventTime()
+		after, err := stack.GetLastEventTime()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		if err := stackResource.Destroy(); err != nil {
+		if err := stack.Destroy(); err != nil {
 			log.Fatal(err)
 		}
 
 		for {
 			// Refresh Stack State
-			if err := stackResource.GetStackInfo(); err != nil {
+			if err := stack.GetStackInfo(); err != nil {
 				log.Fatal(err)
 			}
 
-			printStackEvents(&stackResource, after)
+			printStackEvents(&stack, after)
 
-			status := *stackResource.StackInfo.StackStatus
+			status := *stack.StackInfo.StackStatus
 			switch {
 			case stackInProgressRegexp.MatchString(status):
 			case status == cloudformation.StackStatusDeleteComplete:
