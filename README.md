@@ -1,8 +1,9 @@
 # Forge
 
-[![CircleCI](https://circleci.com/gh/nathandines/forge.svg?style=svg)](https://circleci.com/gh/nathandines/forge)
+[![CircleCI](https://img.shields.io/circleci/project/github/nathandines/forge/master.svg)](https://circleci.com/gh/nathandines/forge)
 [![GitHub Release](https://img.shields.io/github/release/nathandines/forge.svg)](https://github.com/nathandines/forge/releases/latest)
-![Github All Releases](https://img.shields.io/github/downloads/nathandines/forge/total.svg)
+[![Github All Releases](https://img.shields.io/github/downloads/nathandines/forge/total.svg)](https://github.com/nathandines/forge/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/nathandines/forge)](https://goreportcard.com/report/github.com/nathandines/forge)
 
 ## What is Forge, and why do I need it?
 
