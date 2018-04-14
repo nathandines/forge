@@ -23,9 +23,9 @@ var rootCmd = &cobra.Command{
 Forge is a simple tool which makes deploying CloudFormation stacks a bit more
 friendly for continuous delivery environments.
 
-Website: https://nathandines.github.io/forge
+GitHub: https://github.com/nathandines/forge
 `,
-	Version: "v0.1.0-beta",
+	Version: "v0.1.0",
 }
 
 func init() {
