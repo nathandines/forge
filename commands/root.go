@@ -25,7 +25,7 @@ friendly for continuous delivery environments.
 
 Website: https://nathandines.github.io/forge
 `,
-	Version: "v0.1.0-alpha2",
+	Version: "v0.1.0-beta",
 }
 
 func init() {
