@@ -22,8 +22,10 @@ var rootCmd = &cobra.Command{
 	Long: `
 Forge is a simple tool which makes deploying CloudFormation stacks a bit more
 friendly for continuous delivery environments.
+
+Website: https://nathandines.github.io/forge
 `,
-	Version: "v0.1.0-alpha2",
+	Version: "v0.1.0-beta",
 }
 
 func init() {
@@ -57,7 +59,23 @@ func printStackEvents(s *forge.Stack, after *time.Time) {
 		log.Fatal(err)
 	}
 	for _, e := range bunch {
-		jsonData, err := json.MarshalIndent(*e, "", "  ")
+		// IDs renamed for JSON output to match the API response data
+		stackEvent := struct {
+			LogicalResourceID    *string   `json:"LogicalResourceId"`
+			PhysicalResourceID   *string   `json:"PhysicalResourceId,omitempty"`
+			ResourceStatus       *string   `json:""`
+			ResourceStatusReason *string   `json:",omitempty"`
+			ResourceType         *string   `json:""`
+			Timestamp            time.Time `json:""`
+		}{
+			(*e).LogicalResourceId,
+			(*e).PhysicalResourceId,
+			(*e).ResourceStatus,
+			(*e).ResourceStatusReason,
+			(*e).ResourceType,
+			(*(*e).Timestamp).Local(),
+		}
+		jsonData, err := json.MarshalIndent(stackEvent, "", "  ")
 		if err != nil {
 			log.Fatal(err)
 		}

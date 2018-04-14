@@ -19,6 +19,8 @@ state of the stack deployment.
   object
 - Lists in Parameter files will be collapsed into `CommaDelimitedLists` and
   passed into CloudFormation
+- Only required parameters in a parameter file will be used, meaning you can
+  share parameter files between stacks for common usage
 - Automatic discovery and passthrough of CloudFormation capabilities (i.e.
   `CAPABILITY_IAM` and `CAPABILITY_NAMED_IAM`)
 - Synchronous execution of actions against CloudFormation stacks
