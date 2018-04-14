@@ -7,7 +7,7 @@ import (
 )
 
 // Stack represents the attributes of a stack deployment, including the AWS
-// paramters, and local resources which represent what needs to be deployed
+// parameters, and local resources which represent what needs to be deployed
 type Stack struct {
 	ParametersBody  string
 	ProjectManifest string
