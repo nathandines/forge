@@ -1,41 +1,21 @@
 package forgelib
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
-
-type mockDelete struct {
-	stacks *[]cloudformation.Stack
-	cloudformationiface.CloudFormationAPI
-}
-
-func (m mockDelete) DeleteStack(input *cloudformation.DeleteStackInput) (output *cloudformation.DeleteStackOutput, err error) {
-	for i := 0; i < len(*m.stacks); i++ {
-		if *(*m.stacks)[i].StackId == *input.StackName &&
-			*(*m.stacks)[i].StackStatus != cloudformation.StackStatusDeleteComplete {
-			*(*m.stacks)[i].StackStatus = cloudformation.StackStatusDeleteComplete
-			return
-		}
-	}
-	return output, fmt.Errorf("stack not found")
-}
 
 func TestDestroy(t *testing.T) {
 	cases := []struct {
-		expectStacks  []cloudformation.Stack
-		expectSuccess bool
-		thisStack     Stack
-		stacks        []cloudformation.Stack
+		accountID    string
+		expectStacks []cloudformation.Stack
+		stacks       []cloudformation.Stack
+		thisStack    Stack
 	}{
 		{
-			thisStack: Stack{
-				StackID: "test-stack/id0",
-			},
+			thisStack: Stack{StackID: "test-stack/id0"},
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -60,17 +40,18 @@ func TestDestroy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
 				},
 			},
-			expectSuccess: true,
 		},
 		{
 			thisStack: Stack{
-				StackID: "test-stack/id0",
+				StackID:     "test-stack/id0",
+				CfnRoleName: "destroy-role-name",
 			},
+			accountID: "121212121212",
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
 					StackId:     aws.String("test-stack/id0"),
-					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 				},
 				{
 					StackName:   aws.String("test-stack"),
@@ -83,6 +64,7 @@ func TestDestroy(t *testing.T) {
 					StackName:   aws.String("test-stack"),
 					StackId:     aws.String("test-stack/id0"),
 					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+					RoleARN:     aws.String("arn:aws:iam::121212121212:role/destroy-role-name"),
 				},
 				{
 					StackName:   aws.String("test-stack"),
@@ -90,36 +72,41 @@ func TestDestroy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
 				},
 			},
-			expectSuccess: false,
 		},
 	}
 
 	oldCFNClient := cfnClient
 	defer func() { cfnClient = oldCFNClient }()
+	oldSTSClient := stsClient
+	defer func() { stsClient = oldSTSClient }()
 	for i, c := range cases {
 		theseStacks := cases[i].stacks
-		cfnClient = mockDelete{
-			stacks: &theseStacks,
-		}
+		cfnClient = mockCfn{stacks: &theseStacks}
+		stsClient = mockSTS{accountID: c.accountID}
 
 		err := c.thisStack.Destroy()
-		if err != nil && c.expectSuccess {
+		if err != nil {
 			t.Fatalf("%d, unexpected error, %v", i, err)
-		}
-		if err == nil && !c.expectSuccess {
-			t.Errorf("%d, expected error, got success", i)
 		}
 
 		for j := 0; j < len(c.expectStacks); j++ {
-			e := struct{ StackName, StackID, StackStatus string }{
+			e := struct{ RoleARN, StackName, StackID, StackStatus string }{
+				"",
 				*c.expectStacks[j].StackName,
 				*c.expectStacks[j].StackId,
 				*c.expectStacks[j].StackStatus,
 			}
-			g := struct{ StackName, StackID, StackStatus string }{
+			if r := c.expectStacks[j].RoleARN; r != nil {
+				e.RoleARN = *r
+			}
+			g := struct{ RoleARN, StackName, StackID, StackStatus string }{
+				"",
 				*theseStacks[j].StackName,
 				*theseStacks[j].StackId,
 				*theseStacks[j].StackStatus,
+			}
+			if r := theseStacks[j].RoleARN; r != nil {
+				g.RoleARN = *r
 			}
 			if e != g {
 				t.Errorf("%d, expected %+v, got %+v", i, e, g)
