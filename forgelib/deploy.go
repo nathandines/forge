@@ -66,6 +66,14 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 		}
 	}
 
+	var roleARN string
+	if s.CfnRoleName != "" {
+		roleARN, err = roleARNFromName(s.CfnRoleName)
+		if err != nil {
+			return output, err
+		}
+	}
+
 	if s.StackInfo == nil {
 		_, err := cfnClient.CreateStack(
 			&cloudformation.CreateStackInput{
@@ -75,6 +83,7 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 				Capabilities: validationResult.Capabilities,
 				Tags:         tags,
 				Parameters:   inputParams,
+				RoleARN:      &roleARN,
 			},
 		)
 		if err != nil {
@@ -88,6 +97,7 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 				Capabilities: validationResult.Capabilities,
 				Tags:         tags,
 				Parameters:   inputParams,
+				RoleARN:      &roleARN,
 			},
 		)
 		if err != nil {

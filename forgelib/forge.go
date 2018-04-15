@@ -13,7 +13,7 @@ import (
 type Stack struct {
 	ParametersBody  string
 	ProjectManifest string
-	RoleName        string
+	CfnRoleName     string
 	StackID         string
 	StackInfo       *cloudformation.Stack
 	StackName       string

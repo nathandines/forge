@@ -25,9 +25,9 @@ type mockDeploy struct {
 }
 
 type fakeStack struct {
-	StackName, StackID, StackStatus string
-	Tags                            []fakeTag
-	Parameters                      []fakeParameter
+	RoleARN, StackName, StackID, StackStatus string
+	Tags                                     []fakeTag
+	Parameters                               []fakeParameter
 }
 
 type fakeTag struct {
@@ -70,6 +70,11 @@ func genFakeStackData(realStack cloudformation.Stack) fakeStack {
 		})
 	}
 	sort.Sort(byParameterKey(output.Parameters))
+
+	if r := realStack.RoleARN; r != nil {
+		output.RoleARN = *r
+	}
+
 	return output
 }
 
@@ -158,6 +163,7 @@ REQUIRED_PARAMETERS:
 		StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 		Tags:        input.Tags,
 		Parameters:  input.Parameters,
+		RoleARN:     input.RoleARN,
 	}
 	*m.stacks = append(*m.stacks, thisStack)
 
@@ -209,6 +215,7 @@ REQUIRED_PARAMETERS:
 				cloudformation.StackStatusUpdateRollbackComplete:
 
 				*(*m.stacks)[i].StackStatus = cloudformation.StackStatusUpdateComplete
+				(*m.stacks)[i].RoleARN = input.RoleARN
 				(*m.stacks)[i].Tags = input.Tags
 				(*m.stacks)[i].Parameters = input.Parameters
 
@@ -265,7 +272,9 @@ func (m mockDeploy) DescribeStacks(input *cloudformation.DescribeStacksInput) (*
 
 func TestDeploy(t *testing.T) {
 	cases := []struct {
+		accountID          string
 		capabilityIam      bool
+		cfnRoleName        string
 		expectFailure      bool
 		expectOutput       DeployOut
 		expectStacks       []cloudformation.Stack
@@ -671,10 +680,47 @@ func TestDeploy(t *testing.T) {
 			},
 			expectFailure: true,
 		},
+		// Create stack, using role
+		{
+			cfnRoleName: "role-name",
+			accountID:   "111111111111",
+			newStackID:  "test-stack/id0",
+			stacks:      []cloudformation.Stack{},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+					RoleARN:     aws.String("arn:aws:iam::111111111111:role/role-name"),
+				},
+			},
+		},
+		// Update stack, using role
+		{
+			cfnRoleName: "role-name",
+			accountID:   "111111111111",
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+					RoleARN:     aws.String("arn:aws:iam::111111111111:role/role-name"),
+				},
+			},
+		},
 	}
 
 	oldCFNClient := cfnClient
 	defer func() { cfnClient = oldCFNClient }()
+	oldSTSClient := stsClient
+	defer func() { stsClient = oldSTSClient }()
 	for i, c := range cases {
 		theseStacks := cases[i].stacks
 		cfnClient = mockDeploy{
@@ -687,6 +733,7 @@ func TestDeploy(t *testing.T) {
 			requiredParameters: c.requiredParameters,
 			stacks:             &theseStacks,
 		}
+		stsClient = mockSTS{accountID: c.accountID}
 
 		thisStack := c.thisStack
 		if thisStack == (Stack{}) {
@@ -695,6 +742,7 @@ func TestDeploy(t *testing.T) {
 				StackName:      "test-stack",
 				TagsBody:       c.tagInput,
 				TemplateBody:   `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
+				CfnRoleName:    c.cfnRoleName,
 			}
 		}
 

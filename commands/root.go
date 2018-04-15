@@ -37,7 +37,7 @@ func init() {
 		"Name of the stack to manage",
 	)
 	rootCmd.PersistentFlags().StringVar(
-		&stack.RoleName,
+		&stack.CfnRoleName,
 		"cfn-role-name",
 		"",
 		"Name of IAM role in the destination account for CloudFormation to assume",
