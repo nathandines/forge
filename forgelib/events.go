@@ -19,7 +19,7 @@ func (s *Stack) ListEvents(after *time.Time) (events []*cloudformation.StackEven
 	if s.StackID == "" {
 		return events, errorNoStackID
 	}
-	err = cfn.DescribeStackEventsPages(
+	err = cfnClient.DescribeStackEventsPages(
 		&cloudformation.DescribeStackEventsInput{
 			StackName: &s.StackID,
 		}, func(page *cloudformation.DescribeStackEventsOutput, lastPage bool) bool {

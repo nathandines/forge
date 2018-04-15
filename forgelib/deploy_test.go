@@ -673,9 +673,11 @@ func TestDeploy(t *testing.T) {
 		},
 	}
 
+	oldCFNClient := cfnClient
+	defer func() { cfnClient = oldCFNClient }()
 	for i, c := range cases {
 		theseStacks := cases[i].stacks
-		cfn = mockDeploy{
+		cfnClient = mockDeploy{
 			capabilityIam:      c.capabilityIam,
 			failCreate:         c.failCreate,
 			failDescribe:       c.failDescribe,

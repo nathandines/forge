@@ -91,8 +91,10 @@ func TestListEvents(t *testing.T) {
 			expected: []*cloudformation.StackEvent{},
 		},
 	}
+	oldCFNClient := cfnClient
+	defer func() { cfnClient = oldCFNClient }()
 	for i, c := range cases {
-		cfn = mockEvents{stackEventsOutput: c.resp}
+		cfnClient = mockEvents{stackEventsOutput: c.resp}
 
 		s := Stack{StackID: "whatever"}
 		events, err := s.ListEvents(&c.after)
@@ -131,8 +133,10 @@ func TestGetLastEventTime(t *testing.T) {
 			expected: time.Unix(300, 0),
 		},
 	}
+	oldCFNClient := cfnClient
+	defer func() { cfnClient = oldCFNClient }()
 	for i, c := range cases {
-		cfn = mockEvents{stackEventsOutput: c.resp}
+		cfnClient = mockEvents{stackEventsOutput: c.resp}
 
 		s := Stack{StackID: "whatever"}
 		result, err := s.GetLastEventTime()

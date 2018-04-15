@@ -13,7 +13,7 @@ func (s *Stack) Destroy() (err error) {
 	// the same name which was created since this was previously executed. The
 	// `Stack` object should always refer to the exact same stack, be it created
 	// or deleted
-	_, err = cfn.DeleteStack(
+	_, err = cfnClient.DeleteStack(
 		&cloudformation.DeleteStackInput{
 			StackName: &s.StackID,
 		},

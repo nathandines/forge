@@ -36,13 +36,12 @@ func init() {
 		"",
 		"Name of the stack to manage",
 	)
-	// rootCmd.PersistentFlags().StringVarP(
-	// 	&stack.RoleName,
-	// 	"role-name",
-	// 	"r",
-	// 	"",
-	// 	"Name of IAM role in this account for CloudFormation to assume",
-	// )
+	rootCmd.PersistentFlags().StringVar(
+		&stack.RoleName,
+		"cfn-role-name",
+		"",
+		"Name of IAM role in the destination account for CloudFormation to assume",
+	)
 }
 
 // Execute does what it says on the box

@@ -16,7 +16,7 @@ type DeployOut struct {
 
 // Deploy will create or update the stack (depending on its current state)
 func (s *Stack) Deploy() (output DeployOut, err error) {
-	validationResult, err := cfn.ValidateTemplate(
+	validationResult, err := cfnClient.ValidateTemplate(
 		&cloudformation.ValidateTemplateInput{
 			TemplateBody: aws.String(s.TemplateBody),
 		},
@@ -67,7 +67,7 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 	}
 
 	if s.StackInfo == nil {
-		_, err := cfn.CreateStack(
+		_, err := cfnClient.CreateStack(
 			&cloudformation.CreateStackInput{
 				StackName:    aws.String(s.StackName),
 				TemplateBody: aws.String(s.TemplateBody),
@@ -81,7 +81,7 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 			return output, err
 		}
 	} else {
-		_, err := cfn.UpdateStack(
+		_, err := cfnClient.UpdateStack(
 			&cloudformation.UpdateStackInput{
 				StackName:    aws.String(s.StackID),
 				TemplateBody: aws.String(s.TemplateBody),

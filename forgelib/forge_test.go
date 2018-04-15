@@ -48,8 +48,10 @@ func TestGetStackInfo(t *testing.T) {
 		},
 	}
 
+	oldCFNClient := cfnClient
+	defer func() { cfnClient = oldCFNClient }()
 	for i, c := range cases {
-		cfn = mockStacks{stacksOutput: c.resp}
+		cfnClient = mockStacks{stacksOutput: c.resp}
 
 		s := Stack{
 			StackName: c.stackName,
