@@ -29,13 +29,15 @@ state of the stack deployment.
 - Running stack event output on the command line
 - Dynamically Create or Update stacks based on existing stack status
 - Acceptance of "No updates to be performed." as a non-erroneous state
+- Environment Variable Substitution in Parameter and Tag files
 
 More features are currently on the roadmap, which can be [found on
 Trello](https://trello.com/b/ECuGN86A)
 
 ## Available Parameters
 
-To see what options are available to you, execute `forge --help` for the latest help applicable to your version of _Forge_
+To see what options are available to you, execute `forge --help` for the latest
+help applicable to your version of _Forge_
 
 ## Getting Started
 
@@ -43,6 +45,25 @@ To see what options are available to you, execute `forge --help` for the latest 
 
 ```sh
 go get -u github.com/nathandines/forge
+```
+
+### Using Environment Variables in Parameter or Tag files
+
+Environment variables can be referenced within parameter and tag files by using
+the following format: ``'{{ env `variable_name` }}'`` (the backticks **MUST**
+surround the variable name). This is because under the covers, _Forge_ uses the
+Golang text templating engine, with an additional function (`env`) to assist
+with environment variable references.
+
+**YAML Note:** The curly braces must be quoted when using YAML to ensure that
+the field is interpreted as a string
+
+#### Example
+
+```yaml
+---
+Environment: '{{ env `ENVIRONMENT` }}'
+Owner Email: '{{ env `USER` }}@example.com'
 ```
 
 ### Example: Deploying a stack with tags and parameters
@@ -82,6 +103,7 @@ UnrelatedParameter: This Will Not Be Used
 ##### cfn_template.yml
 
 ```yaml
+---
 Parameters:
   DomainName:
     Type: String

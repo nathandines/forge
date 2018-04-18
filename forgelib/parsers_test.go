@@ -1,6 +1,7 @@
 package forgelib
 
 import (
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,6 +12,7 @@ func TestParseTags(t *testing.T) {
 	cases := []struct {
 		input        string
 		expectedTags []*cloudformation.Tag
+		envVars      map[string]string
 	}{
 		// JSON String
 		{
@@ -145,9 +147,41 @@ func TestParseTags(t *testing.T) {
 				},
 			},
 		},
+		// JSON String, with env variables
+		{
+			input: `{"ThisKey":"ThisValue-{{ env \"TEST_VAR1\"}}"}`,
+			expectedTags: []*cloudformation.Tag{
+				{
+					Key:   aws.String("ThisKey"),
+					Value: aws.String("ThisValue-VALUE_HERE"),
+				},
+			},
+			envVars: map[string]string{"TEST_VAR1": "VALUE_HERE"},
+		},
+		// YAML String, with env variables
+		{
+			input: "---\nThisKey: ThisValue-{{ env \"TEST_VAR1\"}}",
+			expectedTags: []*cloudformation.Tag{
+				{
+					Key:   aws.String("ThisKey"),
+					Value: aws.String("ThisValue-VALUE_HERE"),
+				},
+			},
+			envVars: map[string]string{"TEST_VAR1": "VALUE_HERE"},
+		},
 	}
 
 	for i, c := range cases {
+		oldValueMap := map[string]string{}
+		for k, v := range c.envVars {
+			if oldValue, present := os.LookupEnv(k); present {
+				oldValueMap[k] = oldValue
+				defer os.Setenv(k, oldValueMap[k])
+			}
+			os.Setenv(k, v)
+			defer os.Unsetenv(k)
+		}
+
 		var tags []*cloudformation.Tag
 		tags, err := parseTags(c.input)
 		if err != nil {
@@ -193,6 +227,7 @@ func TestParseParameters(t *testing.T) {
 	cases := []struct {
 		input              string
 		expectedParameters []*cloudformation.Parameter
+		envVars            map[string]string
 	}{
 		// JSON String
 		{
@@ -380,9 +415,41 @@ func TestParseParameters(t *testing.T) {
 				},
 			},
 		},
+		// JSON String, with env variables
+		{
+			input: `{"ThisKey":"ThisValue-{{ env \"TEST_VAR1\"}}"}`,
+			expectedParameters: []*cloudformation.Parameter{
+				{
+					ParameterKey:   aws.String("ThisKey"),
+					ParameterValue: aws.String("ThisValue-VALUE_HERE"),
+				},
+			},
+			envVars: map[string]string{"TEST_VAR1": "VALUE_HERE"},
+		},
+		// YAML String, with env variables
+		{
+			input: "---\nThisKey: ThisValue-{{ env \"TEST_VAR1\"}}",
+			expectedParameters: []*cloudformation.Parameter{
+				{
+					ParameterKey:   aws.String("ThisKey"),
+					ParameterValue: aws.String("ThisValue-VALUE_HERE"),
+				},
+			},
+			envVars: map[string]string{"TEST_VAR1": "VALUE_HERE"},
+		},
 	}
 
 	for i, c := range cases {
+		oldValueMap := map[string]string{}
+		for k, v := range c.envVars {
+			if oldValue, present := os.LookupEnv(k); present {
+				oldValueMap[k] = oldValue
+				defer os.Setenv(k, oldValueMap[k])
+			}
+			os.Setenv(k, v)
+			defer os.Unsetenv(k)
+		}
+
 		var parameters []*cloudformation.Parameter
 		parameters, err := parseParameters(c.input)
 		if err != nil {
@@ -420,6 +487,79 @@ func TestParseParametersErrors(t *testing.T) {
 
 	for i, c := range cases {
 		_, err := parseParameters(c)
+		if err == nil {
+			t.Errorf("%d, expected error, but got success", i)
+		}
+	}
+}
+
+func TestParseEnvironmentVariables(t *testing.T) {
+	cases := []struct {
+		envVars        map[string]string
+		inputTemplate  string
+		expectedOutput string
+	}{
+		{
+			envVars: map[string]string{
+				"TEST_VAR3": "soup",
+				"TEST_VAR4": "TEST=VALUE4",
+			},
+			inputTemplate:  "This {{ env \"TEST_VAR3\" }} should be good",
+			expectedOutput: "This soup should be good",
+		},
+		{
+			envVars: map[string]string{
+				"TEST_VAR3": "soup",
+				"TEST_VAR4": "TEST=VALUE4",
+			},
+			inputTemplate:  "This {{env \"TEST_VAR3\"}} should be good. Also, {{env \"TEST_VAR4\"}}",
+			expectedOutput: "This soup should be good. Also, TEST=VALUE4",
+		},
+	}
+
+	for i, c := range cases {
+		oldValueMap := map[string]string{}
+		for k, v := range c.envVars {
+			if oldValue, present := os.LookupEnv(k); present {
+				oldValueMap[k] = oldValue
+				defer os.Setenv(k, oldValueMap[k])
+			}
+			os.Setenv(k, v)
+			defer os.Unsetenv(k)
+		}
+
+		parsedInput, err := parseEnvironmentVariables(c.inputTemplate)
+		if err != nil {
+			t.Fatalf("%d, unexpected error, %v", i, err)
+		}
+		if e, g := c.expectedOutput, parsedInput; e != g {
+			t.Errorf("%d, expected \"%s\", got \"%s\"", i, e, g)
+		}
+	}
+}
+
+func TestParseEnvironmentVariablesError(t *testing.T) {
+	cases := []struct {
+		envVars       []string
+		inputTemplate string
+	}{
+		{
+			envVars:       []string{"SHOULD_NOT_EXIST"},
+			inputTemplate: "This {{env \"SHOULD_NOT_EXIST\"}} should fail because the env var isn't defined",
+		},
+	}
+
+	for i, c := range cases {
+		oldValueMap := map[string]string{}
+		for _, k := range c.envVars {
+			if oldValue, present := os.LookupEnv(k); present {
+				oldValueMap[k] = oldValue
+				defer os.Setenv(k, oldValueMap[k])
+			}
+			os.Unsetenv(k)
+		}
+
+		_, err := parseEnvironmentVariables(c.inputTemplate)
 		if err == nil {
 			t.Errorf("%d, expected error, but got success", i)
 		}
