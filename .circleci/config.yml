@@ -120,7 +120,6 @@ jobs:
 
       - setup_remote_docker
 
-      - wait
       - run:
           name: Build container and Release to Docker Hub
           run: |
