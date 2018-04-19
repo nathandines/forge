@@ -1,5 +1,7 @@
 .PHONY: test clean deps lint gofmt govet godiff coverage
 
+CGO_ENABLED = 0
+
 bin/forge:
 	go build -o bin/forge
 
