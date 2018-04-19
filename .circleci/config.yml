@@ -42,7 +42,7 @@ jobs:
           paths:
             - '*'
 
-  release:
+  release-github:
     <<: *defaults
 
     steps:
@@ -51,7 +51,7 @@ jobs:
       - attach_workspace:
           at: bin
 
-      - run:
+      - run: &validate_tag_version
           name: Validate Tag Version
           command: |
             forge_version="$(./bin/forge --version | grep -Po 'v\d+(?:\.\d+){2}(?:-[a-z]+\d?)?$')"
@@ -107,6 +107,33 @@ jobs:
           fi
           ghr -u "$CIRCLE_PROJECT_USERNAME" -r "$CIRCLE_PROJECT_REPONAME" -replace $PRERELEASE "$CIRCLE_TAG" release
 
+  release-docker:
+    <<: *defaults
+
+    steps:
+      - checkout
+
+      - attach_workspace:
+          at: bin
+
+      - run: *validate_tag_version
+
+      - setup_remote_docker
+
+      - wait
+      - run:
+          name: Build container and Release to Docker Hub
+          run: |
+            DOCKER_REPO="${CIRCLE_PROJECT_USERNAME}/forge"
+            docker build -t "${DOCKER_REPO}:${CIRCLE_TAG}" .
+            docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"
+            docker push "${DOCKER_REPO}:${CIRCLE_TAG}"
+            # If not a pre-release version, tag as latest
+            if ! (printf "$CIRCLE_TAG" | grep -Pq -- '-[a-z]+\d?$'); then
+              docker tag "${DOCKER_REPO}:${CIRCLE_TAG}" "${DOCKER_REPO}:latest"
+              docker push "${CIRCLE_PROJECT_USERNAME}/forge:latest"
+            fi
+
 workflows:
   version: 2
   build-n-release:
@@ -115,11 +142,29 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - release:
+      - release-github:
           requires:
             - build
           filters:
             tags:
-              only: /^v\d+(?:\.\d+){2}(?:-[a-z]+\d?)?$/
+              only: &version_tag /^v\d+(?:\.\d+){2}(?:-[a-z]+\d?)?$/
             branches:
               ignore: /.*/
+      - release-docker:
+          requires:
+            - build
+          filters:
+            tags:
+              only: *version_tag
+            branches:
+              ignore: /.*/
+  nightly:
+    triggers:
+      - schedule:
+          cron: "37 14 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - build
