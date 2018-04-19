@@ -101,11 +101,13 @@ jobs:
           command: *build_cmd
 
       - run: go get github.com/tcnksm/ghr
-      - run: |
-          if (printf "$CIRCLE_TAG" | grep -Pq -- '-[a-z]+\d?$'); then
-            PRERELEASE='-prerelease'
-          fi
-          ghr -u "$CIRCLE_PROJECT_USERNAME" -r "$CIRCLE_PROJECT_REPONAME" -replace $PRERELEASE "$CIRCLE_TAG" release
+      - run:
+          name: Release to GitHub
+          command: |
+            if (printf "$CIRCLE_TAG" | grep -Pq -- '-[a-z]+\d?$'); then
+              PRERELEASE='-prerelease'
+            fi
+            ghr -u "$CIRCLE_PROJECT_USERNAME" -r "$CIRCLE_PROJECT_REPONAME" -replace $PRERELEASE "$CIRCLE_TAG" release
 
   release-docker:
     <<: *defaults
@@ -122,7 +124,7 @@ jobs:
 
       - run:
           name: Build container and Release to Docker Hub
-          run: |
+          command: |
             DOCKER_REPO="${CIRCLE_PROJECT_USERNAME}/forge"
             docker build -t "${DOCKER_REPO}:${CIRCLE_TAG}" .
             docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"
