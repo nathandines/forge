@@ -152,6 +152,7 @@ workflows:
             branches:
               ignore: /.*/
       - release-docker:
+          context: dockerhub
           requires:
             - build
           filters:
