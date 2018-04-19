@@ -158,3 +158,13 @@ workflows:
               only: *version_tag
             branches:
               ignore: /.*/
+  nightly:
+    triggers:
+      - schedule:
+          cron: "37 14 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - build
