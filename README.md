@@ -4,6 +4,7 @@
 [![GitHub Release](https://img.shields.io/github/release/nathandines/forge.svg)](https://github.com/nathandines/forge/releases/latest)
 [![Github All Releases](https://img.shields.io/github/downloads/nathandines/forge/total.svg)](https://github.com/nathandines/forge/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nathandines/forge)](https://goreportcard.com/report/github.com/nathandines/forge)
+[![Docker Image](https://img.shields.io/badge/docker-nathandines%2Fforge-blue.svg)](https://hub.docker.com/r/nathandines/forge/)
 
 ## What is Forge, and why do I need it?
 
