@@ -6,8 +6,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/nathandines/forge)](https://goreportcard.com/report/github.com/nathandines/forge)
 [![Docker Image](https://img.shields.io/badge/docker-nathandines%2Fforge-blue.svg)](https://hub.docker.com/r/nathandines/forge/)
 
-## What is Forge, and why do I need it?
-
 _Forge_ is a simple tool which makes deploying CloudFormation stacks a bit
 easier in continuous delivery environments. In contrast to
 [awscli](https://github.com/aws/aws-cli), _Forge_ provides a mechanism to
