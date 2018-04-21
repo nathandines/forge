@@ -6,29 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
-
-type mockEvents struct {
-	stackEventsOutput cloudformation.DescribeStackEventsOutput
-	cloudformationiface.CloudFormationAPI
-}
-
-func (m mockEvents) DescribeStackEventsPages(input *cloudformation.DescribeStackEventsInput, function func(*cloudformation.DescribeStackEventsOutput, bool) bool) error {
-	// Paginate events to test that the destination functions concatenate the
-	// entries correctly
-	for i := 0; i < len(m.stackEventsOutput.StackEvents); i++ {
-		thisOutput := &cloudformation.DescribeStackEventsOutput{
-			StackEvents: []*cloudformation.StackEvent{
-				m.stackEventsOutput.StackEvents[i],
-			},
-		}
-		if nextPage := function(thisOutput, true); !nextPage {
-			return nil
-		}
-	}
-	return nil
-}
 
 func TestListEvents(t *testing.T) {
 	cases := []struct {
@@ -94,7 +72,7 @@ func TestListEvents(t *testing.T) {
 	oldCFNClient := cfnClient
 	defer func() { cfnClient = oldCFNClient }()
 	for i, c := range cases {
-		cfnClient = mockEvents{stackEventsOutput: c.resp}
+		cfnClient = mockCfn{stackEventsOutput: c.resp}
 
 		s := Stack{StackID: "whatever"}
 		events, err := s.ListEvents(&c.after)
@@ -136,7 +114,7 @@ func TestGetLastEventTime(t *testing.T) {
 	oldCFNClient := cfnClient
 	defer func() { cfnClient = oldCFNClient }()
 	for i, c := range cases {
-		cfnClient = mockEvents{stackEventsOutput: c.resp}
+		cfnClient = mockCfn{stackEventsOutput: c.resp}
 
 		s := Stack{StackID: "whatever"}
 		result, err := s.GetLastEventTime()

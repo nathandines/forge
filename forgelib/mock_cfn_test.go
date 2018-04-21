@@ -17,6 +17,7 @@ type mockCfn struct {
 	newStackID         string
 	noUpdates          bool
 	requiredParameters []string
+	stackEventsOutput  cloudformation.DescribeStackEventsOutput
 	stacks             *[]cloudformation.Stack
 	cloudformationiface.CloudFormationAPI
 }
@@ -223,4 +224,20 @@ func (m mockCfn) DeleteStack(input *cloudformation.DeleteStackInput) (output *cl
 		}
 	}
 	return
+}
+
+func (m mockCfn) DescribeStackEventsPages(input *cloudformation.DescribeStackEventsInput, function func(*cloudformation.DescribeStackEventsOutput, bool) bool) error {
+	// Paginate events to test that the destination functions concatenate the
+	// entries correctly
+	for i := 0; i < len(m.stackEventsOutput.StackEvents); i++ {
+		thisOutput := &cloudformation.DescribeStackEventsOutput{
+			StackEvents: []*cloudformation.StackEvent{
+				m.stackEventsOutput.StackEvents[i],
+			},
+		}
+		if nextPage := function(thisOutput, true); !nextPage {
+			return nil
+		}
+	}
+	return nil
 }
