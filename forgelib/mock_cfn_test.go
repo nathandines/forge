@@ -18,6 +18,7 @@ type mockCfn struct {
 	noUpdates          bool
 	requiredParameters []string
 	stackEventsOutput  cloudformation.DescribeStackEventsOutput
+	stackPolicies      *map[string]string
 	stacks             *[]cloudformation.Stack
 	cloudformationiface.CloudFormationAPI
 }
@@ -111,6 +112,10 @@ REQUIRED_PARAMETERS:
 	}
 	*m.stacks = append(*m.stacks, thisStack)
 
+	if input.StackPolicyBody != nil && *input.StackPolicyBody != "" {
+		(*m.stackPolicies)[m.newStackID] = *input.StackPolicyBody
+	}
+
 	output.StackId = &m.newStackID
 	return &output, nil
 }
@@ -162,6 +167,10 @@ REQUIRED_PARAMETERS:
 				(*m.stacks)[i].RoleARN = input.RoleARN
 				(*m.stacks)[i].Tags = input.Tags
 				(*m.stacks)[i].Parameters = input.Parameters
+
+				if input.StackPolicyBody != nil && *input.StackPolicyBody != "" {
+					(*m.stackPolicies)[*(*m.stacks)[i].StackId] = *input.StackPolicyBody
+				}
 
 				output.StackId = &m.newStackID
 				return &output, nil
