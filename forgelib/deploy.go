@@ -3,6 +3,8 @@ package forgelib
 import (
 	"fmt"
 
+	"github.com/ghodss/yaml"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -74,30 +76,42 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 		}
 	}
 
+	var inputStackPolicy string
+	if s.StackPolicyBody != "" {
+		jsonStackPolicy, err := yaml.YAMLToJSON([]byte(s.StackPolicyBody))
+		if err != nil {
+			return output, err
+		}
+		inputStackPolicy = string(jsonStackPolicy)
+	}
+
 	if s.StackInfo == nil {
-		_, err := cfnClient.CreateStack(
+		createOut, err := cfnClient.CreateStack(
 			&cloudformation.CreateStackInput{
-				StackName:    aws.String(s.StackName),
-				TemplateBody: aws.String(s.TemplateBody),
-				OnFailure:    aws.String("DELETE"),
-				Capabilities: validationResult.Capabilities,
-				Tags:         tags,
-				Parameters:   inputParams,
-				RoleARN:      &roleARN,
+				StackName:       aws.String(s.StackName),
+				TemplateBody:    aws.String(s.TemplateBody),
+				OnFailure:       aws.String("DELETE"),
+				Capabilities:    validationResult.Capabilities,
+				Tags:            tags,
+				Parameters:      inputParams,
+				RoleARN:         &roleARN,
+				StackPolicyBody: &inputStackPolicy,
 			},
 		)
 		if err != nil {
 			return output, err
 		}
+		s.StackID = *createOut.StackId
 	} else {
 		_, err := cfnClient.UpdateStack(
 			&cloudformation.UpdateStackInput{
-				StackName:    aws.String(s.StackID),
-				TemplateBody: aws.String(s.TemplateBody),
-				Capabilities: validationResult.Capabilities,
-				Tags:         tags,
-				Parameters:   inputParams,
-				RoleARN:      &roleARN,
+				StackName:       aws.String(s.StackID),
+				TemplateBody:    aws.String(s.TemplateBody),
+				Capabilities:    validationResult.Capabilities,
+				Tags:            tags,
+				Parameters:      inputParams,
+				RoleARN:         &roleARN,
+				StackPolicyBody: &inputStackPolicy,
 			},
 		)
 		if err != nil {

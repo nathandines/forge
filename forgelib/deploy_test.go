@@ -533,17 +533,7 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 				},
 			},
-			expectStackPolicy: `{
-				"Statement":
-				[
-					{
-						"Effect": "Allow",
-						"Action" : "Update:*",
-						"Principal": "*",
-						"NotResource" : "LogicalResourceId/ProductionDatabase"
-					}
-				]
-			}`,
+			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
 		},
 		// Update; JSON Stack Policy
 		{
@@ -582,17 +572,7 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
 				},
 			},
-			expectStackPolicy: `{
-				"Statement":
-				[
-					{
-						"Effect": "Allow",
-						"Action" : "Update:*",
-						"Principal": "*",
-						"NotResource" : "LogicalResourceId/ProductionDatabase"
-					}
-				]
-			}`,
+			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
 		},
 		// Create; YAML Stack Policy
 		{
@@ -602,8 +582,7 @@ func TestDeploy(t *testing.T) {
                 - Effect: Allow
                   Action: Update:*
                   Principal: '*'
-                  NotResource: LogicalResourceId/ProductionDatabase
-			`,
+                  NotResource: LogicalResourceId/ProductionDatabase`,
 			stacks: []cloudformation.Stack{},
 			expectStacks: []cloudformation.Stack{
 				{
@@ -612,17 +591,7 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 				},
 			},
-			expectStackPolicy: `{
-				"Statement":
-				[
-					{
-						"Effect": "Allow",
-						"Action" : "Update:*",
-						"Principal": "*",
-						"NotResource" : "LogicalResourceId/ProductionDatabase"
-					}
-				]
-			}`,
+			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
 		},
 		// Update; JSON Stack Policy
 		{
@@ -631,8 +600,7 @@ func TestDeploy(t *testing.T) {
                 - Effect: Allow
                   Action: Update:*
                   Principal: '*'
-                  NotResource: LogicalResourceId/ProductionDatabase
-			`,
+                  NotResource: LogicalResourceId/ProductionDatabase`,
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -657,17 +625,7 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
 				},
 			},
-			expectStackPolicy: `{
-				"Statement":
-				[
-					{
-						"Effect": "Allow",
-						"Action" : "Update:*",
-						"Principal": "*",
-						"NotResource" : "LogicalResourceId/ProductionDatabase"
-					}
-				]
-			}`,
+			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
 		},
 	}
 
@@ -678,7 +636,7 @@ func TestDeploy(t *testing.T) {
 	for i, c := range cases {
 		theseStacks := cases[i].stacks
 		theseStackPolicies := c.stackPolicies
-		if c.stackPolicies == nil {
+		if theseStackPolicies == nil {
 			theseStackPolicies = map[string]string{}
 		}
 		cfnClient = mockCfn{
@@ -697,11 +655,12 @@ func TestDeploy(t *testing.T) {
 		thisStack := c.thisStack
 		if thisStack == (Stack{}) {
 			thisStack = Stack{
-				ParametersBody: c.parameterInput,
-				StackName:      "test-stack",
-				TagsBody:       c.tagInput,
-				TemplateBody:   `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
-				CfnRoleName:    c.cfnRoleName,
+				ParametersBody:  c.parameterInput,
+				StackName:       "test-stack",
+				TagsBody:        c.tagInput,
+				TemplateBody:    `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
+				CfnRoleName:     c.cfnRoleName,
+				StackPolicyBody: c.stackPolicyInput,
 			}
 		}
 

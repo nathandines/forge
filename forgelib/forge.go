@@ -17,7 +17,7 @@ type Stack struct {
 	StackID         string
 	StackInfo       *cloudformation.Stack
 	StackName       string
-	StackPolicyFile string
+	StackPolicyBody string
 	TagsBody        string
 	TemplateBody    string
 }

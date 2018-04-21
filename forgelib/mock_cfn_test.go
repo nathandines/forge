@@ -112,7 +112,7 @@ REQUIRED_PARAMETERS:
 	}
 	*m.stacks = append(*m.stacks, thisStack)
 
-	if input.StackPolicyBody != nil && *input.StackPolicyBody != "" {
+	if *input.StackPolicyBody != "" {
 		(*m.stackPolicies)[m.newStackID] = *input.StackPolicyBody
 	}
 
@@ -168,7 +168,7 @@ REQUIRED_PARAMETERS:
 				(*m.stacks)[i].Tags = input.Tags
 				(*m.stacks)[i].Parameters = input.Parameters
 
-				if input.StackPolicyBody != nil && *input.StackPolicyBody != "" {
+				if *input.StackPolicyBody != "" {
 					(*m.stackPolicies)[*(*m.stacks)[i].StackId] = *input.StackPolicyBody
 				}
 
