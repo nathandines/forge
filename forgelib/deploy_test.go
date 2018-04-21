@@ -708,6 +708,10 @@ func TestDeploy(t *testing.T) {
 			t.Errorf("%d, expected %+v info, got %+v", i, e, g)
 		}
 
+		if thisStack.StackID == "" && !c.expectFailure {
+			t.Errorf("%d, expected populated Stack ID on stack, found none", i)
+		}
+
 		for j := 0; j < len(c.expectStacks); j++ {
 			e := genFakeStackData(c.expectStacks[j])
 			g := genFakeStackData(theseStacks[j])
