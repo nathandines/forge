@@ -4,8 +4,7 @@
 [![GitHub Release](https://img.shields.io/github/release/nathandines/forge.svg)](https://github.com/nathandines/forge/releases/latest)
 [![Github All Releases](https://img.shields.io/github/downloads/nathandines/forge/total.svg)](https://github.com/nathandines/forge/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nathandines/forge)](https://goreportcard.com/report/github.com/nathandines/forge)
-
-## What is Forge, and why do I need it?
+[![Docker Image](https://img.shields.io/badge/docker-nathandines%2Fforge-blue.svg)](https://hub.docker.com/r/nathandines/forge/)
 
 _Forge_ is a simple tool which makes deploying CloudFormation stacks a bit
 easier in continuous delivery environments. In contrast to
@@ -30,6 +29,7 @@ state of the stack deployment.
 - Dynamically Create or Update stacks based on existing stack status
 - Acceptance of "No updates to be performed." as a non-erroneous state
 - Environment Variable Substitution in Parameter and Tag files
+- YAML and JSON formatted stack policies
 
 More features are currently on the roadmap, which can be [found on
 Trello](https://trello.com/b/ECuGN86A)

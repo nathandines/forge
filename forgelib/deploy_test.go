@@ -71,6 +71,7 @@ func TestDeploy(t *testing.T) {
 		expectFailure      bool
 		expectOutput       DeployOut
 		expectStacks       []cloudformation.Stack
+		expectStackPolicy  string
 		failCreate         bool
 		failDescribe       bool
 		failValidate       bool
@@ -79,6 +80,8 @@ func TestDeploy(t *testing.T) {
 		parameterInput     string
 		requiredParameters []string
 		stacks             []cloudformation.Stack
+		stackPolicies      map[string]string
+		stackPolicyInput   string
 		tagInput           string
 		thisStack          Stack
 	}{
@@ -508,6 +511,122 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
+		// Create; JSON Stack Policy
+		{
+			newStackID: "test-stack/id0",
+			stackPolicyInput: `{
+				"Statement":
+				[
+					{
+						"Effect": "Allow",
+						"Action" : "Update:*",
+						"Principal": "*",
+						"NotResource" : "LogicalResourceId/ProductionDatabase"
+					}
+				]
+			}`,
+			stacks: []cloudformation.Stack{},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
+		},
+		// Update; JSON Stack Policy
+		{
+			stackPolicyInput: `{
+				"Statement":
+				[
+					{
+						"Effect": "Allow",
+						"Action" : "Update:*",
+						"Principal": "*",
+						"NotResource" : "LogicalResourceId/ProductionDatabase"
+					}
+				]
+			}`,
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+				},
+			},
+			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
+		},
+		// Create; YAML Stack Policy
+		{
+			newStackID: "test-stack/id0",
+			stackPolicyInput: `---
+                Statement:
+                - Effect: Allow
+                  Action: Update:*
+                  Principal: '*'
+                  NotResource: LogicalResourceId/ProductionDatabase`,
+			stacks: []cloudformation.Stack{},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
+		},
+		// Update; JSON Stack Policy
+		{
+			stackPolicyInput: `---
+                Statement:
+                - Effect: Allow
+                  Action: Update:*
+                  Principal: '*'
+                  NotResource: LogicalResourceId/ProductionDatabase`,
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id1"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+				},
+			},
+			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
+		},
 	}
 
 	oldCFNClient := cfnClient
@@ -516,6 +635,10 @@ func TestDeploy(t *testing.T) {
 	defer func() { stsClient = oldSTSClient }()
 	for i, c := range cases {
 		theseStacks := cases[i].stacks
+		theseStackPolicies := c.stackPolicies
+		if theseStackPolicies == nil {
+			theseStackPolicies = map[string]string{}
+		}
 		cfnClient = mockCfn{
 			capabilityIam:      c.capabilityIam,
 			failCreate:         c.failCreate,
@@ -525,17 +648,19 @@ func TestDeploy(t *testing.T) {
 			noUpdates:          c.noUpdates,
 			requiredParameters: c.requiredParameters,
 			stacks:             &theseStacks,
+			stackPolicies:      &theseStackPolicies,
 		}
 		stsClient = mockSTS{accountID: c.accountID}
 
 		thisStack := c.thisStack
 		if thisStack == (Stack{}) {
 			thisStack = Stack{
-				ParametersBody: c.parameterInput,
-				StackName:      "test-stack",
-				TagsBody:       c.tagInput,
-				TemplateBody:   `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
-				CfnRoleName:    c.cfnRoleName,
+				ParametersBody:  c.parameterInput,
+				StackName:       "test-stack",
+				TagsBody:        c.tagInput,
+				TemplateBody:    `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
+				CfnRoleName:     c.cfnRoleName,
+				StackPolicyBody: c.stackPolicyInput,
 			}
 		}
 
@@ -556,6 +681,16 @@ func TestDeploy(t *testing.T) {
 			g := genFakeStackData(theseStacks[j])
 			if !reflect.DeepEqual(e, g) {
 				t.Errorf("%d, expected %+v, got %+v", i, e, g)
+			}
+		}
+
+		if e := c.expectStackPolicy; e != "" {
+			if g, ok := theseStackPolicies[thisStack.StackID]; ok {
+				if e != g {
+					t.Errorf("%d, expected stack policy \"%s\", got \"%s\"", i, e, g)
+				}
+			} else {
+				t.Errorf("%d, expected stack policy \"%s\", got none", i, e)
 			}
 		}
 	}

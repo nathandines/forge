@@ -14,6 +14,7 @@ import (
 var tagsFile string
 var templateFile string
 var parametersFile string
+var stackPolicyFile string
 
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
@@ -42,13 +43,22 @@ var deployCmd = &cobra.Command{
 			stack.TagsBody = string(tagsBody)
 		}
 
-		// Read tags-file
+		// Read parameters-file
 		if parametersFile != "" {
 			parametersBody, err := ioutil.ReadFile(parametersFile)
 			if err != nil {
 				log.Fatal(err)
 			}
 			stack.ParametersBody = string(parametersBody)
+		}
+
+		// Read stack-policy-file
+		if stackPolicyFile != "" {
+			stackPolicyBody, err := ioutil.ReadFile(stackPolicyFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			stack.StackPolicyBody = string(stackPolicyBody)
 		}
 
 		// Populate Stack ID
@@ -123,6 +133,14 @@ func init() {
 		"Path to the file which contains the tags for this stack",
 	)
 	deployCmd.MarkFlagFilename("tags-file")
+
+	deployCmd.PersistentFlags().StringVar(
+		&stackPolicyFile,
+		"stack-policy-file",
+		"",
+		"Path to the file which contains the stack policy for this stack",
+	)
+	deployCmd.MarkFlagFilename("stack-policy-file")
 
 	rootCmd.AddCommand(deployCmd)
 }
