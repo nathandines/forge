@@ -29,6 +29,7 @@ state of the stack deployment.
 - Dynamically Create or Update stacks based on existing stack status
 - Acceptance of "No updates to be performed." as a non-erroneous state
 - Environment Variable Substitution in Parameter and Tag files
+- YAML and JSON formatted stack policies
 
 More features are currently on the roadmap, which can be [found on
 Trello](https://trello.com/b/ECuGN86A)
