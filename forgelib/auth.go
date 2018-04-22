@@ -35,9 +35,6 @@ func AssumeRole(roleArn string) error {
 		return err
 	}
 	assumeOut, err := stsClient.AssumeRole(&sts.AssumeRoleInput{
-		// Default to 12 hours in case of lengthy CloudFormation deployments;
-		// this might be configurable in the future
-		DurationSeconds: aws.Int64(43200),
 		RoleSessionName: aws.String(roleSessionName),
 		RoleArn:         aws.String(roleArn),
 	})

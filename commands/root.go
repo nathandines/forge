@@ -15,6 +15,7 @@ import (
 
 var stack = forge.Stack{}
 var stackInProgressRegexp = regexp.MustCompile("^.*_IN_PROGRESS$")
+var assumeRoleArn string
 
 var rootCmd = &cobra.Command{
 	Use:   "forge",
@@ -40,7 +41,13 @@ func init() {
 		&stack.CfnRoleName,
 		"cfn-role-name",
 		"",
-		"Name of IAM role in the destination account for CloudFormation to assume",
+		"Name of IAM role in the destination account for the CloudFormation service to assume",
+	)
+	rootCmd.PersistentFlags().StringVar(
+		&assumeRoleArn,
+		"assume-role-arn",
+		"",
+		"Name of IAM role to assume BEFORE making requests to CloudFormation",
 	)
 }
 
