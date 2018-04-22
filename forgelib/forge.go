@@ -1,12 +1,6 @@
 package forgelib
 
-import (
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-)
+import "github.com/aws/aws-sdk-go/service/cloudformation"
 
 // Stack represents the attributes of a stack deployment, including the AWS
 // parameters, and local resources which represent what needs to be deployed
@@ -20,17 +14,6 @@ type Stack struct {
 	StackPolicyBody string
 	TagsBody        string
 	TemplateBody    string
-}
-
-var cfnClient cloudformationiface.CloudFormationAPI // CloudFormation service
-var stsClient stsiface.STSAPI                       // STS Service
-
-func init() {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-	cfnClient = cloudformation.New(sess)
-	stsClient = sts.New(sess)
 }
 
 // GetStackInfo populates the StackInfo for this object from the existing stack

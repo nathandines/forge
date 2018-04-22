@@ -10,12 +10,13 @@ func (s *Stack) Destroy() (err error) {
 		return errorNoStackID
 	}
 
-	var roleARN string
+	var roleARN *string
 	if s.CfnRoleName != "" {
-		roleARN, err = roleARNFromName(s.CfnRoleName)
+		roleARNString, err := roleARNFromName(s.CfnRoleName)
 		if err != nil {
 			return err
 		}
+		roleARN = &roleARNString
 	}
 
 	// Delete stack by Stack ID. This removes the risk of deleting a stack with
@@ -25,7 +26,7 @@ func (s *Stack) Destroy() (err error) {
 	_, err = cfnClient.DeleteStack(
 		&cloudformation.DeleteStackInput{
 			StackName: &s.StackID,
-			RoleARN:   &roleARN,
+			RoleARN:   roleARN,
 		},
 	)
 	return

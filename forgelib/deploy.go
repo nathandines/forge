@@ -68,21 +68,23 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 		}
 	}
 
-	var roleARN string
+	var roleARN *string
 	if s.CfnRoleName != "" {
-		roleARN, err = roleARNFromName(s.CfnRoleName)
+		roleARNString, err := roleARNFromName(s.CfnRoleName)
 		if err != nil {
 			return output, err
 		}
+		roleARN = &roleARNString
 	}
 
-	var inputStackPolicy string
+	var inputStackPolicy *string
 	if s.StackPolicyBody != "" {
 		jsonStackPolicy, err := yaml.YAMLToJSON([]byte(s.StackPolicyBody))
 		if err != nil {
 			return output, err
 		}
-		inputStackPolicy = string(jsonStackPolicy)
+		jsonStackPolicyString := string(jsonStackPolicy)
+		inputStackPolicy = &jsonStackPolicyString
 	}
 
 	if s.StackInfo == nil {
@@ -94,8 +96,8 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 				Capabilities:    validationResult.Capabilities,
 				Tags:            tags,
 				Parameters:      inputParams,
-				RoleARN:         &roleARN,
-				StackPolicyBody: &inputStackPolicy,
+				RoleARN:         roleARN,
+				StackPolicyBody: inputStackPolicy,
 			},
 		)
 		if err != nil {
@@ -110,8 +112,8 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 				Capabilities:    validationResult.Capabilities,
 				Tags:            tags,
 				Parameters:      inputParams,
-				RoleARN:         &roleARN,
-				StackPolicyBody: &inputStackPolicy,
+				RoleARN:         roleARN,
+				StackPolicyBody: inputStackPolicy,
 			},
 		)
 		if err != nil {

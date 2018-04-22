@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	forge "github.com/nathandines/forge/forgelib"
 	"github.com/spf13/cobra"
 )
 
@@ -59,6 +60,12 @@ var deployCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 			stack.StackPolicyBody = string(stackPolicyBody)
+		}
+
+		if assumeRoleArn != "" {
+			if err := forge.AssumeRole(assumeRoleArn); err != nil {
+				log.Fatal(err)
+			}
 		}
 
 		// Populate Stack ID
