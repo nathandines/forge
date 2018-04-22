@@ -30,6 +30,8 @@ state of the stack deployment.
 - Acceptance of "No updates to be performed." as a non-erroneous state
 - Environment Variable Substitution in Parameter and Tag files
 - YAML and JSON formatted stack policies
+- Deploy using an assumed IAM role (often used to deploy stacks to other
+  accounts)
 
 More features are currently on the roadmap, which can be [found on
 Trello](https://trello.com/b/ECuGN86A)

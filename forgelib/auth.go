@@ -35,6 +35,7 @@ func AssumeRole(roleArn string) error {
 		return err
 	}
 	assumeOut, err := stsClient.AssumeRole(&sts.AssumeRoleInput{
+		DurationSeconds: aws.Int64(900),
 		RoleSessionName: aws.String(roleSessionName),
 		RoleArn:         aws.String(roleArn),
 	})

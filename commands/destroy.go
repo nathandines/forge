@@ -35,9 +35,12 @@ var destroyCmd = &cobra.Command{
 		}
 
 		for {
-			// Refresh Stack State
+		refresh_stack_status:
 			if err := stack.GetStackInfo(); err != nil {
-				log.Fatal(err)
+				if err2 := rotateRoleCredentials(err); err2 != nil {
+					log.Fatal(err)
+				}
+				goto refresh_stack_status
 			}
 
 			printStackEvents(&stack, after)
