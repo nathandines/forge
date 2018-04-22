@@ -69,7 +69,7 @@ var deployCmd = &cobra.Command{
 		}
 
 		// Populate Stack ID
-		// Deliberately ignore errors here
+		// Deliberately ignore errors here, as the stack might not exist yet
 		stack.GetStackInfo()
 
 		after, err := stack.GetLastEventTime()
@@ -90,9 +90,12 @@ var deployCmd = &cobra.Command{
 		}
 
 		for {
-			// Refresh Stack State
+		refresh_stack_status:
 			if err := stack.GetStackInfo(); err != nil {
-				log.Fatal(err)
+				if err2 := rotateRoleCredentials(err); err2 != nil {
+					log.Fatal(err)
+				}
+				goto refresh_stack_status
 			}
 
 			printStackEvents(&stack, after)

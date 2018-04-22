@@ -10,6 +10,7 @@ import (
 
 	forge "github.com/nathandines/forge/forgelib"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/spf13/cobra"
 )
 
@@ -60,9 +61,13 @@ func Execute() {
 }
 
 func printStackEvents(s *forge.Stack, after *time.Time) {
+list_events:
 	bunch, err := s.ListEvents(after)
 	if err != nil {
-		log.Fatal(err)
+		if err2 := rotateRoleCredentials(err); err2 != nil {
+			log.Fatal(err)
+		}
+		goto list_events
 	}
 	for _, e := range bunch {
 		// IDs renamed for JSON output to match the API response data
@@ -90,4 +95,21 @@ func printStackEvents(s *forge.Stack, after *time.Time) {
 	if len(bunch) > 0 {
 		*after = *bunch[len(bunch)-1].Timestamp
 	}
+}
+
+func rotateRoleCredentials(err error) error {
+	if awsErr, ok := err.(awserr.Error); ok && assumeRoleArn != "" {
+		switch awsErr.Code() {
+		case "ExpiredToken":
+			forge.UnassumeAllRoles()
+			if err2 := forge.AssumeRole(assumeRoleArn); err2 != nil {
+				return err
+			}
+		default:
+			return err
+		}
+	} else {
+		return err
+	}
+	return nil
 }
