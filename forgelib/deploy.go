@@ -126,5 +126,14 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 			return output, err
 		}
 	}
+	// Only SET termination protection, do not remove
+	if s.TerminationProtection != false {
+		cfnClient.UpdateTerminationProtection(
+			&cloudformation.UpdateTerminationProtectionInput{
+				EnableTerminationProtection: aws.Bool(s.TerminationProtection),
+				StackName:                   aws.String(s.StackID),
+			},
+		)
+	}
 	return
 }

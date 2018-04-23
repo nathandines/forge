@@ -32,6 +32,7 @@ state of the stack deployment.
 - YAML and JSON formatted stack policies
 - Deploy using an assumed IAM role (often used to deploy stacks to other
   accounts)
+- Enable Termination Protection at deployment time
 
 More features are currently on the roadmap, which can be [found on
 Trello](https://trello.com/b/ECuGN86A)

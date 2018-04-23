@@ -5,15 +5,16 @@ import "github.com/aws/aws-sdk-go/service/cloudformation"
 // Stack represents the attributes of a stack deployment, including the AWS
 // parameters, and local resources which represent what needs to be deployed
 type Stack struct {
-	ParametersBody  string
-	ProjectManifest string
-	CfnRoleName     string
-	StackID         string
-	StackInfo       *cloudformation.Stack
-	StackName       string
-	StackPolicyBody string
-	TagsBody        string
-	TemplateBody    string
+	ParametersBody        string
+	ProjectManifest       string
+	CfnRoleName           string
+	StackID               string
+	StackInfo             *cloudformation.Stack
+	StackName             string
+	StackPolicyBody       string
+	TagsBody              string
+	TemplateBody          string
+	TerminationProtection bool
 }
 
 // GetStackInfo populates the StackInfo for this object from the existing stack
