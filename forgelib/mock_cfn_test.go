@@ -103,12 +103,13 @@ REQUIRED_PARAMETERS:
 	}
 
 	thisStack := cloudformation.Stack{
-		StackName:   input.StackName,
-		StackId:     aws.String(m.newStackID),
-		StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
-		Tags:        input.Tags,
-		Parameters:  input.Parameters,
-		RoleARN:     input.RoleARN,
+		StackName:                   input.StackName,
+		StackId:                     aws.String(m.newStackID),
+		StackStatus:                 aws.String(cloudformation.StackStatusCreateComplete),
+		Tags:                        input.Tags,
+		Parameters:                  input.Parameters,
+		RoleARN:                     input.RoleARN,
+		EnableTerminationProtection: input.EnableTerminationProtection,
 	}
 	*m.stacks = append(*m.stacks, thisStack)
 
@@ -256,16 +257,16 @@ func (m mockCfn) UpdateTerminationProtection(input *cloudformation.UpdateTermina
 	// For each existing stack, match against the stack ID first, then the stack
 	// name. If found and the stack is in a good state, set values against it
 	// and return
+STACK_LOOP:
 	for i := 0; i < len(*m.stacks); i++ {
 		if s := *input.StackName; s == *(*m.stacks)[i].StackId ||
 			s == *(*m.stacks)[i].StackName {
 			switch *(*m.stacks)[i].StackStatus {
-			case cloudformation.StackStatusCreateComplete,
-				cloudformation.StackStatusUpdateComplete,
-				cloudformation.StackStatusUpdateRollbackComplete:
-
+			case cloudformation.StackStatusDeleteComplete,
+				cloudformation.StackStatusDeleteInProgress:
+				break STACK_LOOP
+			default:
 				(*m.stacks)[i].EnableTerminationProtection = input.EnableTerminationProtection
-
 				output.StackId = (*m.stacks)[i].StackId
 				return &output, nil
 			}
