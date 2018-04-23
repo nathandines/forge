@@ -709,6 +709,38 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
+		// Update stack and turn on termination protection when no updates to perform
+		{
+			noUpdates:             true,
+			expectOutput:          DeployOut{Message: "No updates are to be performed."},
+			terminationProtection: true,
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:                   aws.String("test-stack"),
+					StackId:                     aws.String("test-stack/id1"),
+					StackStatus:                 aws.String(cloudformation.StackStatusCreateComplete),
+					EnableTerminationProtection: aws.Bool(false),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:                   aws.String("test-stack"),
+					StackId:                     aws.String("test-stack/id1"),
+					StackStatus:                 aws.String(cloudformation.StackStatusCreateComplete),
+					EnableTerminationProtection: aws.Bool(true),
+				},
+			},
+		},
 		// Update stack and leave termination protection alone
 		{
 			stacks: []cloudformation.Stack{

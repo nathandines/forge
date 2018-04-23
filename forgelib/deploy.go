@@ -90,14 +90,15 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 	if s.StackInfo == nil {
 		createOut, err := cfnClient.CreateStack(
 			&cloudformation.CreateStackInput{
-				StackName:       aws.String(s.StackName),
-				TemplateBody:    aws.String(s.TemplateBody),
-				OnFailure:       aws.String("DELETE"),
-				Capabilities:    validationResult.Capabilities,
-				Tags:            tags,
-				Parameters:      inputParams,
-				RoleARN:         roleARN,
-				StackPolicyBody: inputStackPolicy,
+				StackName:                   aws.String(s.StackName),
+				TemplateBody:                aws.String(s.TemplateBody),
+				OnFailure:                   aws.String("DELETE"),
+				Capabilities:                validationResult.Capabilities,
+				Tags:                        tags,
+				Parameters:                  inputParams,
+				RoleARN:                     roleARN,
+				StackPolicyBody:             inputStackPolicy,
+				EnableTerminationProtection: aws.Bool(s.TerminationProtection),
 			},
 		)
 		if err != nil {
@@ -105,6 +106,20 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 		}
 		s.StackID = *createOut.StackId
 	} else {
+		// Only SET termination protection, do not remove
+		if s.StackInfo.EnableTerminationProtection != nil &&
+			!*s.StackInfo.EnableTerminationProtection &&
+			s.TerminationProtection {
+			_, err := cfnClient.UpdateTerminationProtection(
+				&cloudformation.UpdateTerminationProtectionInput{
+					EnableTerminationProtection: aws.Bool(s.TerminationProtection),
+					StackName:                   aws.String(s.StackID),
+				},
+			)
+			if err != nil {
+				return output, err
+			}
+		}
 		_, err := cfnClient.UpdateStack(
 			&cloudformation.UpdateStackInput{
 				StackName:       aws.String(s.StackID),
@@ -125,15 +140,6 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 			}
 			return output, err
 		}
-	}
-	// Only SET termination protection, do not remove
-	if s.TerminationProtection != false {
-		cfnClient.UpdateTerminationProtection(
-			&cloudformation.UpdateTerminationProtectionInput{
-				EnableTerminationProtection: aws.Bool(s.TerminationProtection),
-				StackName:                   aws.String(s.StackID),
-			},
-		)
 	}
 	return
 }
