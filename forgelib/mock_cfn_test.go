@@ -250,3 +250,30 @@ func (m mockCfn) DescribeStackEventsPages(input *cloudformation.DescribeStackEve
 	}
 	return nil
 }
+
+func (m mockCfn) UpdateTerminationProtection(input *cloudformation.UpdateTerminationProtectionInput) (*cloudformation.UpdateTerminationProtectionOutput, error) {
+	output := cloudformation.UpdateTerminationProtectionOutput{}
+	// For each existing stack, match against the stack ID first, then the stack
+	// name. If found and the stack is in a good state, set values against it
+	// and return
+	for i := 0; i < len(*m.stacks); i++ {
+		if s := *input.StackName; s == *(*m.stacks)[i].StackId ||
+			s == *(*m.stacks)[i].StackName {
+			switch *(*m.stacks)[i].StackStatus {
+			case cloudformation.StackStatusCreateComplete,
+				cloudformation.StackStatusUpdateComplete,
+				cloudformation.StackStatusUpdateRollbackComplete:
+
+				(*m.stacks)[i].EnableTerminationProtection = input.EnableTerminationProtection
+
+				output.StackId = (*m.stacks)[i].StackId
+				return &output, nil
+			}
+		}
+	}
+	return &output, awserr.New(
+		"ValidationError",
+		fmt.Sprintf("Stack with id %s does not exist", *input.StackName),
+		nil,
+	)
+}

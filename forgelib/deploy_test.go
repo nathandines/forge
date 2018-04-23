@@ -13,6 +13,7 @@ type fakeStack struct {
 	RoleARN, StackName, StackID, StackStatus string
 	Tags                                     []fakeTag
 	Parameters                               []fakeParameter
+	EnableTerminationProtection              bool
 }
 
 type fakeTag struct {
@@ -60,30 +61,35 @@ func genFakeStackData(realStack cloudformation.Stack) fakeStack {
 		output.RoleARN = *r
 	}
 
+	if t := realStack.EnableTerminationProtection; t != nil {
+		output.EnableTerminationProtection = *t
+	}
+
 	return output
 }
 
 func TestDeploy(t *testing.T) {
 	cases := []struct {
-		accountID          string
-		capabilityIam      bool
-		cfnRoleName        string
-		expectFailure      bool
-		expectOutput       DeployOut
-		expectStacks       []cloudformation.Stack
-		expectStackPolicy  string
-		failCreate         bool
-		failDescribe       bool
-		failValidate       bool
-		newStackID         string
-		noUpdates          bool
-		parameterInput     string
-		requiredParameters []string
-		stacks             []cloudformation.Stack
-		stackPolicies      map[string]string
-		stackPolicyInput   string
-		tagInput           string
-		thisStack          Stack
+		accountID             string
+		capabilityIam         bool
+		cfnRoleName           string
+		expectFailure         bool
+		expectOutput          DeployOut
+		expectStacks          []cloudformation.Stack
+		expectStackPolicy     string
+		failCreate            bool
+		failDescribe          bool
+		failValidate          bool
+		newStackID            string
+		noUpdates             bool
+		parameterInput        string
+		requiredParameters    []string
+		stacks                []cloudformation.Stack
+		stackPolicies         map[string]string
+		stackPolicyInput      string
+		tagInput              string
+		terminationProtection bool
+		thisStack             Stack
 	}{
 		// Create new stack with previously used name
 		{
@@ -659,6 +665,109 @@ func TestDeploy(t *testing.T) {
 			},
 			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
 		},
+		// Create new stack with termination protection
+		{
+			terminationProtection: true,
+			newStackID:            "test-stack/id0",
+			stacks:                []cloudformation.Stack{},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:                   aws.String("test-stack"),
+					StackId:                     aws.String("test-stack/id0"),
+					StackStatus:                 aws.String(cloudformation.StackStatusCreateComplete),
+					EnableTerminationProtection: aws.Bool(true),
+				},
+			},
+		},
+		// Update stack and turn on termination protection
+		{
+			terminationProtection: true,
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:                   aws.String("test-stack"),
+					StackId:                     aws.String("test-stack/id1"),
+					StackStatus:                 aws.String(cloudformation.StackStatusCreateComplete),
+					EnableTerminationProtection: aws.Bool(false),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:                   aws.String("test-stack"),
+					StackId:                     aws.String("test-stack/id1"),
+					StackStatus:                 aws.String(cloudformation.StackStatusUpdateComplete),
+					EnableTerminationProtection: aws.Bool(true),
+				},
+			},
+		},
+		// Update stack and leave termination protection alone
+		{
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:                   aws.String("test-stack"),
+					StackId:                     aws.String("test-stack/id1"),
+					StackStatus:                 aws.String(cloudformation.StackStatusCreateComplete),
+					EnableTerminationProtection: aws.Bool(true),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:                   aws.String("test-stack"),
+					StackId:                     aws.String("test-stack/id1"),
+					StackStatus:                 aws.String(cloudformation.StackStatusUpdateComplete),
+					EnableTerminationProtection: aws.Bool(true),
+				},
+			},
+		},
+		// Update stack and leave termination protection alone (v. 2)
+		{
+			terminationProtection: false,
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:                   aws.String("test-stack"),
+					StackId:                     aws.String("test-stack/id1"),
+					StackStatus:                 aws.String(cloudformation.StackStatusCreateComplete),
+					EnableTerminationProtection: aws.Bool(true),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+				},
+				{
+					StackName:                   aws.String("test-stack"),
+					StackId:                     aws.String("test-stack/id1"),
+					StackStatus:                 aws.String(cloudformation.StackStatusUpdateComplete),
+					EnableTerminationProtection: aws.Bool(true),
+				},
+			},
+		},
 	}
 
 	oldCFNClient := cfnClient
@@ -687,12 +796,13 @@ func TestDeploy(t *testing.T) {
 		thisStack := c.thisStack
 		if thisStack == (Stack{}) {
 			thisStack = Stack{
-				ParametersBody:  c.parameterInput,
-				StackName:       "test-stack",
-				TagsBody:        c.tagInput,
-				TemplateBody:    `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
-				CfnRoleName:     c.cfnRoleName,
-				StackPolicyBody: c.stackPolicyInput,
+				ParametersBody:        c.parameterInput,
+				StackName:             "test-stack",
+				TagsBody:              c.tagInput,
+				TemplateBody:          `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
+				CfnRoleName:           c.cfnRoleName,
+				StackPolicyBody:       c.stackPolicyInput,
+				TerminationProtection: c.terminationProtection,
 			}
 		}
 

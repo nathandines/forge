@@ -152,5 +152,13 @@ func init() {
 	)
 	deployCmd.MarkFlagFilename("stack-policy-file")
 
+	deployCmd.PersistentFlags().BoolVar(
+		&stack.TerminationProtection,
+		"termination-protection",
+		false,
+		"Set termination protection for this stack",
+	)
+	deployCmd.MarkFlagFilename("stack-policy-file")
+
 	rootCmd.AddCommand(deployCmd)
 }
