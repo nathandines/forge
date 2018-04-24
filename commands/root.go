@@ -17,6 +17,7 @@ import (
 var stack = forge.Stack{}
 var stackInProgressRegexp = regexp.MustCompile("^.*_IN_PROGRESS$")
 var assumeRoleArn string
+var eventPollingPeriod int
 
 var rootCmd = &cobra.Command{
 	Use:   "forge",
@@ -49,6 +50,12 @@ func init() {
 		"assume-role-arn",
 		"",
 		"Name of IAM role to assume BEFORE making requests to CloudFormation",
+	)
+	rootCmd.PersistentFlags().IntVar(
+		&eventPollingPeriod,
+		"event-polling-period",
+		10,
+		"Polling period in seconds for monitoring CloudFormation stack events (default: 10)",
 	)
 }
 
