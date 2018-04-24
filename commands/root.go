@@ -55,7 +55,7 @@ func init() {
 		&eventPollingPeriod,
 		"event-polling-period",
 		10,
-		"Polling period in seconds for monitoring CloudFormation stack events (default: 10)",
+		"Polling period in seconds for monitoring CloudFormation stack events",
 	)
 }
 
