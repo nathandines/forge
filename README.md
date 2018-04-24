@@ -64,6 +64,21 @@ for instructions on setting the PATH on Linux and Mac. [This
 page](https://stackoverflow.com/questions/1618280/where-can-i-set-path-to-make-exe-on-windows)
 contains instructions for setting the PATH on Windows.
 
+#### Adding bash or zsh completion (optional)
+
+_Forge_ has the capability to generate shell completion for bash and zsh. Run
+one of the following commands (adjusting the destination for the output file as
+required for your machine) to enable shell completion for _Forge_ on your
+system.
+
+If you're not sure which shell you use, you probably use bash.
+
+```sh
+forge gen-bash-completion > /etc/bash_completion.d/forge
+# or
+forge gen-zsh-completion > ~/.zsh_completions.d/forge
+```
+
 ### Using Environment Variables in Parameter or Tag files
 
 Environment variables can be referenced within parameter and tag files by using
