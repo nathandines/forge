@@ -44,11 +44,25 @@ help applicable to your version of _Forge_
 
 ## Getting Started
 
-### Installation
+### Download and Installation
 
-```sh
-go get -u github.com/nathandines/forge
-```
+Go to the [latest release page on
+GitHub](https://github.com/nathandines/forge/releases/latest) to download the
+latest stable version.
+
+Next, move the downloaded binary to a directory which is on your path, and
+rename it to `forge`. On Unix systems, `~/bin` or `/usr/local/bin` are good
+options depending on whether you want to restrict the install to just your user
+or install it system-wide. On Windows systems, a similar pattern is advised;
+`%USERPROFILE%\bin` for a single user, or `%PROGRAMDATA%\bin` for multiple
+users.
+
+The final step to installation is to make sure the directory you installed
+_Forge_ to is on the PATH. See [this
+page](https://stackoverflow.com/questions/14637979/how-to-permanently-set-path-on-linux)
+for instructions on setting the PATH on Linux and Mac. [This
+page](https://stackoverflow.com/questions/1618280/where-can-i-set-path-to-make-exe-on-windows)
+contains instructions for setting the PATH on Windows.
 
 ### Using Environment Variables in Parameter or Tag files
 
