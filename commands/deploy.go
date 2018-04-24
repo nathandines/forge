@@ -112,7 +112,7 @@ var deployCmd = &cobra.Command{
 				log.Fatal(fmt.Errorf("Stack deploy failed! Stack Status: %s", status))
 			}
 
-			time.Sleep(5 * time.Second)
+			time.Sleep(time.Duration(eventPollingPeriod) * time.Second)
 		}
 	},
 }
