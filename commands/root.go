@@ -28,7 +28,7 @@ friendly for continuous delivery environments.
 
 GitHub: https://github.com/nathandines/forge
 `,
-	Version: "v1.0.0",
+	Version: "v1.0.1",
 }
 
 func init() {
@@ -55,7 +55,7 @@ func init() {
 		&eventPollingPeriod,
 		"event-polling-period",
 		10,
-		"Polling period in seconds for monitoring CloudFormation stack events (default: 10)",
+		"Polling period in seconds for monitoring CloudFormation stack events",
 	)
 }
 
