@@ -22,9 +22,9 @@ func init() {
 	setupClients(originalSession)
 }
 
-func setupClients(sess *session.Session) {
-	cfnClient = cloudformation.New(sess)
-	stsClient = sts.New(sess)
+func setupClients(sess *session.Session, cfg ...*aws.Config) {
+	cfnClient = cloudformation.New(sess, cfg...)
+	stsClient = sts.New(sess, cfg...)
 }
 
 // AssumeRole will change your credentials for Forge to those of an assumed role
