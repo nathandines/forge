@@ -168,5 +168,6 @@ workflows:
             branches:
               only:
                 - master
+                - develop
     jobs:
       - build
