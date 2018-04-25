@@ -34,9 +34,6 @@ state of the stack deployment.
   accounts)
 - Enable Termination Protection at deployment time
 
-More features are currently on the roadmap, which can be [found on
-Trello](https://trello.com/b/ECuGN86A)
-
 ## Available Parameters
 
 To see what options are available to you, execute `forge --help` for the latest
