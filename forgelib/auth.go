@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"os"
 	"strings"
 )
 
@@ -23,8 +24,21 @@ func init() {
 }
 
 func setupClients(sess *session.Session, cfg ...*aws.Config) {
-	cfnClient = cloudformation.New(sess, cfg...)
-	stsClient = sts.New(sess, cfg...)
+	// Need to mess around with copying values and making pointers to them due
+	// to the way in which the AWS Go SDK passes around data
+	cfnSessConfig := *sess.Config
+	cfnSess := session.Must(session.NewSession(&cfnSessConfig))
+	if endpoint, ok := os.LookupEnv("AWS_ENDPOINT_CLOUDFORMATION"); ok {
+		cfnSess.Config.Endpoint = aws.String(endpoint)
+	}
+	cfnClient = cloudformation.New(cfnSess, cfg...)
+
+	stsSessConfig := *sess.Config
+	stsSess := session.Must(session.NewSession(&stsSessConfig))
+	if endpoint, ok := os.LookupEnv("AWS_ENDPOINT_STS"); ok {
+		stsSess.Config.Endpoint = aws.String(endpoint)
+	}
+	stsClient = sts.New(stsSess, cfg...)
 }
 
 // AssumeRole will change your credentials for Forge to those of an assumed role

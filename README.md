@@ -197,3 +197,10 @@ make lint
 ```sh
 make clean
 ```
+
+### Change AWS Service Endpoints
+
+You can currently change the service endpoints for both CloudFormation and STS by setting the following environment variables when running _Forge_:
+
+- AWS_ENDPOINT_CLOUDFORMATION
+- AWS_ENDPOINT_STS
