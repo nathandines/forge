@@ -1,6 +1,9 @@
 package forgelib
 
 import (
+	"os"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -8,8 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-	"os"
-	"strings"
 )
 
 var originalSession *session.Session
@@ -24,21 +25,24 @@ func init() {
 }
 
 func setupClients(sess *session.Session, cfg ...*aws.Config) {
+	generalConfig := aws.Config{
+		MaxRetries: aws.Int(10),
+	}
 	// Need to mess around with copying values and making pointers to them due
 	// to the way in which the AWS Go SDK passes around data
-	cfnSessConfig := *sess.Config
-	cfnSess := session.Must(session.NewSession(&cfnSessConfig))
+	cfnConfig := aws.Config{}
 	if endpoint, ok := os.LookupEnv("AWS_ENDPOINT_CLOUDFORMATION"); ok {
-		cfnSess.Config.Endpoint = aws.String(endpoint)
+		cfnConfig.Endpoint = aws.String(endpoint)
 	}
-	cfnClient = cloudformation.New(cfnSess, cfg...)
+	cfnConfigs := append([]*aws.Config{&generalConfig, &cfnConfig}, cfg...)
+	cfnClient = cloudformation.New(sess, cfnConfigs...)
 
-	stsSessConfig := *sess.Config
-	stsSess := session.Must(session.NewSession(&stsSessConfig))
+	stsConfig := aws.Config{}
 	if endpoint, ok := os.LookupEnv("AWS_ENDPOINT_STS"); ok {
-		stsSess.Config.Endpoint = aws.String(endpoint)
+		stsConfig.Endpoint = aws.String(endpoint)
 	}
-	stsClient = sts.New(stsSess, cfg...)
+	stsConfigs := append([]*aws.Config{&generalConfig, &stsConfig}, cfg...)
+	stsClient = sts.New(sess, stsConfigs...)
 }
 
 // AssumeRole will change your credentials for Forge to those of an assumed role
