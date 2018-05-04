@@ -800,6 +800,54 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
+		// Create stack with parameter overrides
+		{
+			newStackID: "test-stack/id0",
+			parameterInput: []string{
+				`{"One":"Foo","Two":"Foo"}`,
+				`{"Two":"Bar"}`,
+			},
+			requiredParameters: []string{"One", "Two"},
+			stacks:             []cloudformation.Stack{},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+					Parameters: []*cloudformation.Parameter{
+						{ParameterKey: aws.String("One"), ParameterValue: aws.String("Foo")},
+						{ParameterKey: aws.String("Two"), ParameterValue: aws.String("Bar")},
+					},
+				},
+			},
+		},
+		// Update stack with parameter overrides
+		{
+			newStackID: "test-stack/id0",
+			parameterInput: []string{
+				`{"One":"Foo","Two":"Foo"}`,
+				`{"Two":"Bar"}`,
+			},
+			requiredParameters: []string{"One", "Two"},
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+					Parameters: []*cloudformation.Parameter{
+						{ParameterKey: aws.String("One"), ParameterValue: aws.String("Foo")},
+						{ParameterKey: aws.String("Two"), ParameterValue: aws.String("Bar")},
+					},
+				},
+			},
+		},
 	}
 
 	oldCFNClient := cfnClient

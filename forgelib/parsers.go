@@ -38,6 +38,7 @@ func parseTags(input string) (output []*cloudformation.Tag, err error) {
 }
 
 func parseParameters(input []string) (output []*cloudformation.Parameter, err error) {
+	paramCollection := map[string]string{}
 	for _, i := range input {
 		var parsedInput interface{}
 		if err := yaml.Unmarshal([]byte(i), &parsedInput); err != nil {
@@ -56,11 +57,14 @@ func parseParameters(input []string) (output []*cloudformation.Parameter, err er
 			if err != nil {
 				return []*cloudformation.Parameter{}, err
 			}
-			output = append(output, &cloudformation.Parameter{
-				ParameterKey:   aws.String(k),
-				ParameterValue: aws.String(envVarSub),
-			})
+			paramCollection[k] = envVarSub
 		}
+	}
+	for k, v := range paramCollection {
+		output = append(output, &cloudformation.Parameter{
+			ParameterKey:   aws.String(k),
+			ParameterValue: aws.String(v),
+		})
 	}
 	return output, err
 }

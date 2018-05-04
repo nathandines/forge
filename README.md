@@ -33,6 +33,7 @@ state of the stack deployment.
 - Deploy using an assumed IAM role (often used to deploy stacks to other
   accounts)
 - Enable Termination Protection at deployment time
+- Define multiple parameter files to merge/override parameters
 
 ## Available Parameters
 
@@ -116,7 +117,7 @@ Tag One: This is an example tag
 CostAllocationTag: Cost Center
 ```
 
-##### parameters.yml
+##### parameters1.yml
 
 ```yaml
 ---
@@ -127,6 +128,13 @@ DNSServers:
   - 10.0.0.3
   - 10.0.0.4
 UnrelatedParameter: This Will Not Be Used
+```
+
+##### parameters2.yml
+
+```yaml
+---
+DomainName: foobar.com
 ```
 
 ##### cfn_template.yml
@@ -164,7 +172,8 @@ Once you're authenticated to the AWS services, you can now deploy your stack
 forge deploy --stack-name test-stack \
   --template-file ./cfn_template.yml \
   --tags-file ./tags.yml \
-  --parameters-file ./parameters.yml
+  --parameters-file ./parameters1.yml \
+  --parameters-file ./parameters2.yml
 ```
 
 During deployment, you'll see event output of the creation of the stack. After

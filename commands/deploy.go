@@ -132,7 +132,7 @@ func init() {
 		"parameters-file",
 		"p",
 		[]string{},
-		"Path to the file which contains the parameters for this stack",
+		"Path to the file which contains the parameters for this stack (can be defined multiple times for overrides)",
 	)
 	deployCmd.MarkFlagFilename("parameters-file")
 

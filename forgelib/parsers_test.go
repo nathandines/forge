@@ -437,6 +437,74 @@ func TestParseParameters(t *testing.T) {
 			},
 			envVars: map[string]string{"TEST_VAR1": "VALUE_HERE"},
 		},
+		// JSON String, with parameter overrides (all overrides)
+		{
+			input: []string{
+				`{"One":"Foo","Two":"Foo"}`,
+				`{"One":"Bar","Two":"Bar"}`,
+			},
+			expectedParameters: []*cloudformation.Parameter{
+				{
+					ParameterKey:   aws.String("One"),
+					ParameterValue: aws.String("Bar"),
+				},
+				{
+					ParameterKey:   aws.String("Two"),
+					ParameterValue: aws.String("Bar"),
+				},
+			},
+		},
+		// YAML String, with parameter overrides (all overrides)
+		{
+			input: []string{
+				"---\nOne: Foo\nTwo: Foo",
+				"---\nOne: Bar\nTwo: Bar",
+			},
+			expectedParameters: []*cloudformation.Parameter{
+				{
+					ParameterKey:   aws.String("One"),
+					ParameterValue: aws.String("Bar"),
+				},
+				{
+					ParameterKey:   aws.String("Two"),
+					ParameterValue: aws.String("Bar"),
+				},
+			},
+		},
+		// JSON String, with parameter overrides (some overrides)
+		{
+			input: []string{
+				`{"One":"Foo","Two":"Foo"}`,
+				`{"Two":"Bar"}`,
+			},
+			expectedParameters: []*cloudformation.Parameter{
+				{
+					ParameterKey:   aws.String("One"),
+					ParameterValue: aws.String("Foo"),
+				},
+				{
+					ParameterKey:   aws.String("Two"),
+					ParameterValue: aws.String("Bar"),
+				},
+			},
+		},
+		// YAML String, with parameter overrides (some overrides)
+		{
+			input: []string{
+				"---\nOne: Foo\nTwo: Foo",
+				"---\nTwo: Bar",
+			},
+			expectedParameters: []*cloudformation.Parameter{
+				{
+					ParameterKey:   aws.String("One"),
+					ParameterValue: aws.String("Foo"),
+				},
+				{
+					ParameterKey:   aws.String("Two"),
+					ParameterValue: aws.String("Bar"),
+				},
+			},
+		},
 	}
 
 	for i, c := range cases {
@@ -456,8 +524,8 @@ func TestParseParameters(t *testing.T) {
 			t.Fatalf("%d, unexpected error, %v", i, err)
 		}
 
-	EXPECTED_PARAMETER:
 		for j := 0; j < len(c.expectedParameters); j++ {
+			found := false
 			e := struct{ ParameterKey, ParameterValue string }{
 				*c.expectedParameters[j].ParameterKey,
 				*c.expectedParameters[j].ParameterValue,
@@ -467,11 +535,17 @@ func TestParseParameters(t *testing.T) {
 					*parameters[k].ParameterKey,
 					*parameters[k].ParameterValue,
 				}
-				if e == g {
-					continue EXPECTED_PARAMETER
+				if e.ParameterKey == g.ParameterKey {
+					if e.ParameterValue == g.ParameterValue {
+						found = true
+					} else {
+						t.Errorf("%d, expected %+v, got %+v", i, e, g)
+					}
 				}
 			}
-			t.Errorf("%d, expected %+v, but not found in output parameters", i, e)
+			if !found {
+				t.Errorf("%d, expected %+v, but not found in output parameters", i, e)
+			}
 		}
 	}
 }
