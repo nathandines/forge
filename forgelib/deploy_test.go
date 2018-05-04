@@ -82,7 +82,7 @@ func TestDeploy(t *testing.T) {
 		failValidate          bool
 		newStackID            string
 		noUpdates             bool
-		parameterInput        string
+		parameterInput        []string
 		requiredParameters    []string
 		stacks                []cloudformation.Stack
 		stackPolicies         map[string]string
@@ -372,7 +372,7 @@ func TestDeploy(t *testing.T) {
 		// Create stack with parameters
 		{
 			newStackID:         "test-stack/id0",
-			parameterInput:     `{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`,
+			parameterInput:     []string{`{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`},
 			requiredParameters: []string{"TestParam1", "TestParam2"},
 			stacks:             []cloudformation.Stack{},
 			expectStacks: []cloudformation.Stack{
@@ -389,7 +389,7 @@ func TestDeploy(t *testing.T) {
 		},
 		// Update stack, adding parameters
 		{
-			parameterInput:     `{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`,
+			parameterInput:     []string{`{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`},
 			requiredParameters: []string{"TestParam1", "TestParam2"},
 			stacks: []cloudformation.Stack{
 				{
@@ -412,7 +412,7 @@ func TestDeploy(t *testing.T) {
 		},
 		// Update stack with subset of parameters
 		{
-			parameterInput:     `{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`,
+			parameterInput:     []string{`{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`},
 			requiredParameters: []string{"TestParam1"},
 			stacks: []cloudformation.Stack{
 				{
@@ -439,7 +439,7 @@ func TestDeploy(t *testing.T) {
 		// Create stack with subset of parameters
 		{
 			newStackID:         "test-stack/id0",
-			parameterInput:     `{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`,
+			parameterInput:     []string{`{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`},
 			requiredParameters: []string{"TestParam1"},
 			stacks:             []cloudformation.Stack{},
 			expectStacks: []cloudformation.Stack{
@@ -456,7 +456,7 @@ func TestDeploy(t *testing.T) {
 		// Create stack, missing required parameters
 		{
 			newStackID:         "test-stack/id0",
-			parameterInput:     `{"TestParam2":"TestValue2"}`,
+			parameterInput:     []string{`{"TestParam2":"TestValue2"}`},
 			requiredParameters: []string{"TestParam1"},
 			stacks:             []cloudformation.Stack{},
 			expectStacks:       []cloudformation.Stack{},
@@ -464,7 +464,7 @@ func TestDeploy(t *testing.T) {
 		},
 		// Update stack, missing required parameters
 		{
-			parameterInput:     `{"TestParam2":"TestValue2"}`,
+			parameterInput:     []string{`{"TestParam2":"TestValue2"}`},
 			requiredParameters: []string{"TestParam1"},
 			stacks: []cloudformation.Stack{
 				{
@@ -826,9 +826,9 @@ func TestDeploy(t *testing.T) {
 		stsClient = mockSTS{accountID: c.accountID}
 
 		thisStack := c.thisStack
-		if thisStack == (Stack{}) {
+		if reflect.DeepEqual(thisStack, Stack{}) {
 			thisStack = Stack{
-				ParametersBody:        c.parameterInput,
+				ParameterBodies:       c.parameterInput,
 				StackName:             "test-stack",
 				TagsBody:              c.tagInput,
 				TemplateBody:          `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,

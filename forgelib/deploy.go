@@ -51,8 +51,8 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 	}
 
 	var inputParams []*cloudformation.Parameter
-	if s.ParametersBody != "" {
-		parameters, err := parseParameters(s.ParametersBody)
+	if len(s.ParameterBodies) != 0 {
+		parameters, err := parseParameters(s.ParameterBodies)
 		if err != nil {
 			return output, err
 		}
