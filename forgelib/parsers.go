@@ -37,27 +37,33 @@ func parseTags(input string) (output []*cloudformation.Tag, err error) {
 	return output, err
 }
 
-func parseParameters(input string) (output []*cloudformation.Parameter, err error) {
-	var parsedInput interface{}
-	if err := yaml.Unmarshal([]byte(input), &parsedInput); err != nil {
-		return output, err
-	}
-	parsedMap, ok := parsedInput.(map[string]interface{})
-	if !ok {
-		return output, fmt.Errorf("Parameters must be a basic key-value object")
-	}
-	for k, v := range parsedMap {
-		var parsedVal string
-		if err := valueToString(v, &parsedVal, true, true); err != nil {
-			return output, fmt.Errorf("Invalid Parameter %s: %s", k, err)
+func parseParameters(input []string) (output []*cloudformation.Parameter, err error) {
+	paramCollection := map[string]string{}
+	for _, i := range input {
+		var parsedInput interface{}
+		if err := yaml.Unmarshal([]byte(i), &parsedInput); err != nil {
+			return []*cloudformation.Parameter{}, err
 		}
-		envVarSub, err := parseEnvironmentVariables(parsedVal)
-		if err != nil {
-			return output, err
+		parsedMap, ok := parsedInput.(map[string]interface{})
+		if !ok {
+			return []*cloudformation.Parameter{}, fmt.Errorf("Parameters must be a basic key-value object")
 		}
+		for k, v := range parsedMap {
+			var parsedVal string
+			if err := valueToString(v, &parsedVal, true, true); err != nil {
+				return []*cloudformation.Parameter{}, fmt.Errorf("Invalid Parameter %s: %s", k, err)
+			}
+			envVarSub, err := parseEnvironmentVariables(parsedVal)
+			if err != nil {
+				return []*cloudformation.Parameter{}, err
+			}
+			paramCollection[k] = envVarSub
+		}
+	}
+	for k, v := range paramCollection {
 		output = append(output, &cloudformation.Parameter{
 			ParameterKey:   aws.String(k),
-			ParameterValue: aws.String(envVarSub),
+			ParameterValue: aws.String(v),
 		})
 	}
 	return output, err

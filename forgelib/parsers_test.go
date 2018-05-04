@@ -225,13 +225,13 @@ func TestParseTagsErrors(t *testing.T) {
 
 func TestParseParameters(t *testing.T) {
 	cases := []struct {
-		input              string
+		input              []string
 		expectedParameters []*cloudformation.Parameter
 		envVars            map[string]string
 	}{
 		// JSON String
 		{
-			input: `{"ThisKey":"ThisValue"}`,
+			input: []string{`{"ThisKey":"ThisValue"}`},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -241,7 +241,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// YAML String
 		{
-			input: "---\nThisKey: ThisValue",
+			input: []string{"---\nThisKey: ThisValue"},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -251,7 +251,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// JSON Integer
 		{
-			input: `{"ThisKey":123}`,
+			input: []string{`{"ThisKey":123}`},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -261,7 +261,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// YAML Integer
 		{
-			input: "---\nThisKey: 123",
+			input: []string{"---\nThisKey: 123"},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -271,7 +271,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// JSON Float
 		{
-			input: `{"ThisKey": 3.1415926535897932384626433832795028841971}`,
+			input: []string{`{"ThisKey": 3.1415926535897932384626433832795028841971}`},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -281,7 +281,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// YAML Float
 		{
-			input: "---\nThisKey: 3.1415926535897932384626433832795028841971",
+			input: []string{"---\nThisKey: 3.1415926535897932384626433832795028841971"},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -291,7 +291,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// JSON Bool
 		{
-			input: `{"ThisKey":true}`,
+			input: []string{`{"ThisKey":true}`},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -301,7 +301,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// YAML Bool
 		{
-			input: "---\nThisKey: true",
+			input: []string{"---\nThisKey: true"},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -311,7 +311,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// JSON String List
 		{
-			input: `{"ThisKey":["one","two"]}`,
+			input: []string{`{"ThisKey":["one","two"]}`},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -321,7 +321,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// YAML String List
 		{
-			input: "---\nThisKey:\n  - one\n  - two",
+			input: []string{"---\nThisKey:\n  - one\n  - two"},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -331,7 +331,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// JSON Misc-List
 		{
-			input: `{"ThisKey":["one",2,123.456,false]}`,
+			input: []string{`{"ThisKey":["one",2,123.456,false]}`},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -341,7 +341,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// YAML Misc-List
 		{
-			input: "---\nThisKey:\n  - one\n  - 2\n  - 123.456\n  - false",
+			input: []string{"---\nThisKey:\n  - one\n  - 2\n  - 123.456\n  - false"},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -351,13 +351,13 @@ func TestParseParameters(t *testing.T) {
 		},
 		// JSON Multi-value
 		{
-			input: `{
+			input: []string{`{
 				"String": "Foobar",
                 "Int": 123,
                 "Float": 123.456,
 				"Boolean": true,
 				"List": ["one","two","three"]
-			}`,
+			}`},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("String"),
@@ -383,7 +383,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// YAML Multi-value
 		{
-			input: `---
+			input: []string{`---
                 String: Foobar
                 Int: 123
                 Float: 123.456
@@ -391,7 +391,7 @@ func TestParseParameters(t *testing.T) {
                 List:
                     - one
                     - two
-                    - three`,
+                    - three`},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("String"),
@@ -417,7 +417,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// JSON String, with env variables
 		{
-			input: `{"ThisKey":"ThisValue-{{ env \"TEST_VAR1\"}}"}`,
+			input: []string{`{"ThisKey":"ThisValue-{{ env \"TEST_VAR1\"}}"}`},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -428,7 +428,7 @@ func TestParseParameters(t *testing.T) {
 		},
 		// YAML String, with env variables
 		{
-			input: "---\nThisKey: ThisValue-{{ env \"TEST_VAR1\"}}",
+			input: []string{"---\nThisKey: ThisValue-{{ env \"TEST_VAR1\"}}"},
 			expectedParameters: []*cloudformation.Parameter{
 				{
 					ParameterKey:   aws.String("ThisKey"),
@@ -436,6 +436,74 @@ func TestParseParameters(t *testing.T) {
 				},
 			},
 			envVars: map[string]string{"TEST_VAR1": "VALUE_HERE"},
+		},
+		// JSON String, with parameter overrides (all overrides)
+		{
+			input: []string{
+				`{"One":"Foo","Two":"Foo"}`,
+				`{"One":"Bar","Two":"Bar"}`,
+			},
+			expectedParameters: []*cloudformation.Parameter{
+				{
+					ParameterKey:   aws.String("One"),
+					ParameterValue: aws.String("Bar"),
+				},
+				{
+					ParameterKey:   aws.String("Two"),
+					ParameterValue: aws.String("Bar"),
+				},
+			},
+		},
+		// YAML String, with parameter overrides (all overrides)
+		{
+			input: []string{
+				"---\nOne: Foo\nTwo: Foo",
+				"---\nOne: Bar\nTwo: Bar",
+			},
+			expectedParameters: []*cloudformation.Parameter{
+				{
+					ParameterKey:   aws.String("One"),
+					ParameterValue: aws.String("Bar"),
+				},
+				{
+					ParameterKey:   aws.String("Two"),
+					ParameterValue: aws.String("Bar"),
+				},
+			},
+		},
+		// JSON String, with parameter overrides (some overrides)
+		{
+			input: []string{
+				`{"One":"Foo","Two":"Foo"}`,
+				`{"Two":"Bar"}`,
+			},
+			expectedParameters: []*cloudformation.Parameter{
+				{
+					ParameterKey:   aws.String("One"),
+					ParameterValue: aws.String("Foo"),
+				},
+				{
+					ParameterKey:   aws.String("Two"),
+					ParameterValue: aws.String("Bar"),
+				},
+			},
+		},
+		// YAML String, with parameter overrides (some overrides)
+		{
+			input: []string{
+				"---\nOne: Foo\nTwo: Foo",
+				"---\nTwo: Bar",
+			},
+			expectedParameters: []*cloudformation.Parameter{
+				{
+					ParameterKey:   aws.String("One"),
+					ParameterValue: aws.String("Foo"),
+				},
+				{
+					ParameterKey:   aws.String("Two"),
+					ParameterValue: aws.String("Bar"),
+				},
+			},
 		},
 	}
 
@@ -456,8 +524,8 @@ func TestParseParameters(t *testing.T) {
 			t.Fatalf("%d, unexpected error, %v", i, err)
 		}
 
-	EXPECTED_PARAMETER:
 		for j := 0; j < len(c.expectedParameters); j++ {
+			found := false
 			e := struct{ ParameterKey, ParameterValue string }{
 				*c.expectedParameters[j].ParameterKey,
 				*c.expectedParameters[j].ParameterValue,
@@ -467,11 +535,17 @@ func TestParseParameters(t *testing.T) {
 					*parameters[k].ParameterKey,
 					*parameters[k].ParameterValue,
 				}
-				if e == g {
-					continue EXPECTED_PARAMETER
+				if e.ParameterKey == g.ParameterKey {
+					if e.ParameterValue == g.ParameterValue {
+						found = true
+					} else {
+						t.Errorf("%d, expected %+v, got %+v", i, e, g)
+					}
 				}
 			}
-			t.Errorf("%d, expected %+v, but not found in output parameters", i, e)
+			if !found {
+				t.Errorf("%d, expected %+v, but not found in output parameters", i, e)
+			}
 		}
 	}
 }
@@ -486,7 +560,7 @@ func TestParseParametersErrors(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		_, err := parseParameters(c)
+		_, err := parseParameters([]string{c})
 		if err == nil {
 			t.Errorf("%d, expected error, but got success", i)
 		}
