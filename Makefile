@@ -4,8 +4,12 @@ bin/forge:
 	CGO_ENABLED=0 go build -o bin/forge
 
 test:
+	@echo "Testing forgelib"
 	@cd forgelib && \
 		go test -v -cover -race
+	@echo "Testing commands"
+	@cd commands && \
+		go test -v -race
 
 coverage:
 	@cd forgelib && \

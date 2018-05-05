@@ -57,12 +57,20 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 			return output, err
 		}
 
-	INPUT_PARAMETERS:
-		for i := 0; i < len(parameters); i++ {
-			for j := 0; j < len((*validationResult).Parameters); j++ {
-				if *parameters[i].ParameterKey == *(*validationResult).Parameters[j].ParameterKey {
-					inputParams = append(inputParams, parameters[i])
-					continue INPUT_PARAMETERS
+	TEMPLATE_PARAMETERS:
+		for i := 0; i < len((*validationResult).Parameters); i++ {
+			for j := 0; j < len(parameters); j++ {
+				if *(*validationResult).Parameters[i].ParameterKey == *parameters[j].ParameterKey {
+					if v, ok := s.ParameterOverrides[*parameters[j].ParameterKey]; ok {
+						param := cloudformation.Parameter{
+							ParameterKey:   aws.String(*parameters[j].ParameterKey),
+							ParameterValue: aws.String(v),
+						}
+						inputParams = append(inputParams, &param)
+					} else {
+						inputParams = append(inputParams, parameters[j])
+					}
+					continue TEMPLATE_PARAMETERS
 				}
 			}
 		}

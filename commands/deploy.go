@@ -15,6 +15,7 @@ import (
 var tagsFile string
 var templateFile string
 var parameterFiles []string
+var parameterOverrides []string
 var stackPolicyFile string
 
 var deployCmd = &cobra.Command{
@@ -51,6 +52,12 @@ var deployCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 			stack.ParameterBodies = append(stack.ParameterBodies, string(parametersBody))
+		}
+
+		// Parse parameter overrides
+		stack.ParameterOverrides, err = parseParameterOverrideArgs(parameterOverrides)
+		if err != nil {
+			log.Fatal(err)
 		}
 
 		// Read stack-policy-file
@@ -132,9 +139,19 @@ func init() {
 		"parameters-file",
 		"p",
 		[]string{},
-		"Path to the file which contains the parameters for this stack (can be defined multiple times for overrides)",
+		"Path to the file which contains the parameters for this stack. Can be"+
+			"defined multiple times to merge files, later ones overriding earlier ones.",
 	)
 	deployCmd.MarkFlagFilename("parameters-file")
+
+	deployCmd.PersistentFlags().StringSliceVarP(
+		&parameterOverrides,
+		"parameter-override",
+		"o",
+		[]string{},
+		"Overrides for parameters (format \"<key>=<value>\". Can be defined"+
+			"multiple times for multiple overrides.",
+	)
 
 	deployCmd.PersistentFlags().StringVar(
 		&tagsFile,

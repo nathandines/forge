@@ -6,6 +6,7 @@ import "github.com/aws/aws-sdk-go/service/cloudformation"
 // parameters, and local resources which represent what needs to be deployed
 type Stack struct {
 	ParameterBodies       []string
+	ParameterOverrides    map[string]string
 	ProjectManifest       string
 	CfnRoleName           string
 	StackID               string

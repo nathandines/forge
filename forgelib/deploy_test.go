@@ -83,6 +83,7 @@ func TestDeploy(t *testing.T) {
 		newStackID            string
 		noUpdates             bool
 		parameterInput        []string
+		parameterOverrides    map[string]string
 		requiredParameters    []string
 		stacks                []cloudformation.Stack
 		stackPolicies         map[string]string
@@ -800,7 +801,7 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Create stack with parameter overrides
+		// Create stack with multiple parameter files
 		{
 			newStackID: "test-stack/id0",
 			parameterInput: []string{
@@ -821,13 +822,57 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack with parameter overrides
+		// Update stack with multiple parameter files
 		{
 			newStackID: "test-stack/id0",
 			parameterInput: []string{
 				`{"One":"Foo","Two":"Foo"}`,
 				`{"Two":"Bar"}`,
 			},
+			requiredParameters: []string{"One", "Two"},
+			stacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+					Parameters: []*cloudformation.Parameter{
+						{ParameterKey: aws.String("One"), ParameterValue: aws.String("Foo")},
+						{ParameterKey: aws.String("Two"), ParameterValue: aws.String("Bar")},
+					},
+				},
+			},
+		},
+		// Create stack with parameter overrides
+		{
+			newStackID:         "test-stack/id0",
+			parameterInput:     []string{`{"One":"Foo","Two":"Foo"}`},
+			parameterOverrides: map[string]string{"Two": "Bar"},
+			requiredParameters: []string{"One", "Two"},
+			stacks:             []cloudformation.Stack{},
+			expectStacks: []cloudformation.Stack{
+				{
+					StackName:   aws.String("test-stack"),
+					StackId:     aws.String("test-stack/id0"),
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+					Parameters: []*cloudformation.Parameter{
+						{ParameterKey: aws.String("One"), ParameterValue: aws.String("Foo")},
+						{ParameterKey: aws.String("Two"), ParameterValue: aws.String("Bar")},
+					},
+				},
+			},
+		},
+		// Update stack with multiple parameter files
+		{
+			newStackID:         "test-stack/id0",
+			parameterInput:     []string{`{"One":"Foo","Two":"Foo"}`},
+			parameterOverrides: map[string]string{"Two": "Bar"},
 			requiredParameters: []string{"One", "Two"},
 			stacks: []cloudformation.Stack{
 				{
@@ -877,6 +922,7 @@ func TestDeploy(t *testing.T) {
 		if reflect.DeepEqual(thisStack, Stack{}) {
 			thisStack = Stack{
 				ParameterBodies:       c.parameterInput,
+				ParameterOverrides:    c.parameterOverrides,
 				StackName:             "test-stack",
 				TagsBody:              c.tagInput,
 				TemplateBody:          `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
