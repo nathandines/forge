@@ -99,6 +99,9 @@ var deployCmd = &cobra.Command{
 		for {
 		refresh_stack_status:
 			if err := stack.GetStackInfo(); err != nil {
+				if assumeRoleArn == "" {
+					log.Fatal(err)
+				}
 				if err2 := rotateRoleCredentials(err); err2 != nil {
 					log.Fatal(err)
 				}

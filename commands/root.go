@@ -105,7 +105,7 @@ list_events:
 }
 
 func rotateRoleCredentials(err error) error {
-	if awsErr, ok := err.(awserr.Error); ok && assumeRoleArn != "" {
+	if awsErr, ok := err.(awserr.Error); ok {
 		switch awsErr.Code() {
 		case "ExpiredToken":
 			forge.UnassumeAllRoles()
