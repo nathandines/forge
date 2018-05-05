@@ -142,8 +142,8 @@ func init() {
 		"parameters-file",
 		"p",
 		[]string{},
-		"Path to the file which contains the parameters for this stack. Can be"+
-			"defined multiple times to merge files, later ones overriding earlier ones.",
+		"Path to the file which contains the parameters for this stack. Can be defined multiple\n"+
+			"times to merge files, later ones overriding earlier ones.",
 	)
 	deployCmd.MarkFlagFilename("parameters-file")
 
@@ -152,8 +152,8 @@ func init() {
 		"parameter-override",
 		"o",
 		[]string{},
-		"Overrides for parameters (format \"<key>=<value>\". Can be defined"+
-			"multiple times for multiple overrides.",
+		"Overrides for parameters (format \"<key>=<value>\". Can be defined multiple times for\n"+
+			"multiple overrides.",
 	)
 
 	deployCmd.PersistentFlags().StringVar(
