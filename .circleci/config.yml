@@ -132,7 +132,7 @@ jobs:
             # If not a pre-release version, tag as latest
             if ! (printf "$CIRCLE_TAG" | grep -Pq -- '-[a-z]+\d?$'); then
               docker tag "${DOCKER_REPO}:${CIRCLE_TAG}" "${DOCKER_REPO}:latest"
-              docker push "${CIRCLE_PROJECT_USERNAME}/forge:latest"
+              docker push "${DOCKER_REPO}:latest"
             fi
 
 workflows:
