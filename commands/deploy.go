@@ -152,7 +152,7 @@ func init() {
 		"parameter-override",
 		"o",
 		[]string{},
-		"Overrides for parameters (format \"<key>=<value>\". Can be defined multiple times for\n"+
+		"Overrides for parameters (format \"<key>=<value>\"). Can be defined multiple times for\n"+
 			"multiple overrides.",
 	)
 
