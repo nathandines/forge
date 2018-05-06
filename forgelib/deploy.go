@@ -51,27 +51,29 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 	}
 
 	var inputParams []*cloudformation.Parameter
+	parsedParameters := []*cloudformation.Parameter{}
 	if len(s.ParameterBodies) != 0 {
-		parameters, err := parseParameters(s.ParameterBodies)
+		parsedParameters, err = parseParameters(s.ParameterBodies)
 		if err != nil {
 			return output, err
 		}
+	}
 
-	TEMPLATE_PARAMETERS:
-		for i := 0; i < len((*validationResult).Parameters); i++ {
-			for j := 0; j < len(parameters); j++ {
-				if *(*validationResult).Parameters[i].ParameterKey == *parameters[j].ParameterKey {
-					if v, ok := s.ParameterOverrides[*parameters[j].ParameterKey]; ok {
-						param := cloudformation.Parameter{
-							ParameterKey:   aws.String(*parameters[j].ParameterKey),
-							ParameterValue: aws.String(v),
-						}
-						inputParams = append(inputParams, &param)
-					} else {
-						inputParams = append(inputParams, parameters[j])
-					}
-					continue TEMPLATE_PARAMETERS
-				}
+TEMPLATE_PARAMETERS:
+	for i := 0; i < len((*validationResult).Parameters); i++ {
+		parameterKey := *(*validationResult).Parameters[i].ParameterKey
+		if v, ok := s.ParameterOverrides[parameterKey]; ok {
+			param := cloudformation.Parameter{
+				ParameterKey:   aws.String(parameterKey),
+				ParameterValue: aws.String(v),
+			}
+			inputParams = append(inputParams, &param)
+			continue TEMPLATE_PARAMETERS
+		}
+		for j := 0; j < len(parsedParameters); j++ {
+			if *parsedParameters[j].ParameterKey == parameterKey {
+				inputParams = append(inputParams, parsedParameters[j])
+				continue TEMPLATE_PARAMETERS
 			}
 		}
 	}
