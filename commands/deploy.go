@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	forge "github.com/nathandines/forge/forgelib"
 	"github.com/spf13/cobra"
 )
 
@@ -70,7 +69,7 @@ var deployCmd = &cobra.Command{
 		}
 
 		if assumeRoleArn != "" {
-			if err := forge.AssumeRole(assumeRoleArn); err != nil {
+			if err := assumeRole(); err != nil {
 				log.Fatal(err)
 			}
 		}

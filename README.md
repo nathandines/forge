@@ -32,6 +32,7 @@ state of the stack deployment.
 - YAML and JSON formatted stack policies
 - Deploy using an assumed IAM role (often used to deploy stacks to other
   accounts)
+  - Includes support for MFA specified on the command line or in `~/.aws/config`
 - Enable Termination Protection at deployment time
 - Define multiple parameter files to merge/override parameters
 - Override specific parameters on the command line
@@ -213,4 +214,5 @@ make clean
 You can currently change the service endpoints for both CloudFormation and STS by setting the following environment variables when running _Forge_:
 
 - AWS_ENDPOINT_CLOUDFORMATION
+- AWS_ENDPOINT_IAM
 - AWS_ENDPOINT_STS

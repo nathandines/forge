@@ -11,12 +11,16 @@ import (
 	forge "github.com/nathandines/forge/forgelib"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/spf13/cobra"
 )
 
 var stack = forge.Stack{}
 var stackInProgressRegexp = regexp.MustCompile("^.*_IN_PROGRESS$")
+
 var assumeRoleArn string
+var assumeRoleMFASerial string
+var assumeRoleWithMFA bool
 var eventPollingPeriod int
 
 var rootCmd = &cobra.Command{
@@ -50,6 +54,18 @@ func init() {
 		"assume-role-arn",
 		"",
 		"Name of IAM role to assume BEFORE making requests to CloudFormation",
+	)
+	rootCmd.PersistentFlags().BoolVar(
+		&assumeRoleWithMFA,
+		"assume-role-with-mfa",
+		false,
+		"Flag to specify that MFA is required to assume the role",
+	)
+	rootCmd.PersistentFlags().StringVar(
+		&assumeRoleMFASerial,
+		"assume-role-mfa-serial",
+		"",
+		"Specify the MFA serial if it cannot be automatically detected",
 	)
 	rootCmd.PersistentFlags().IntVar(
 		&eventPollingPeriod,
@@ -109,14 +125,31 @@ func rotateRoleCredentials(err error) error {
 		switch awsErr.Code() {
 		case "ExpiredToken":
 			forge.UnassumeAllRoles()
-			if err2 := forge.AssumeRole(assumeRoleArn); err2 != nil {
-				return err
+			if err2 := assumeRole(); err2 != nil {
+				return err2
 			}
 		default:
 			return err
 		}
 	} else {
 		return err
+	}
+	return nil
+}
+
+func assumeRole() error {
+	if assumeRoleWithMFA {
+		mfaToken, err := stscreds.StdinTokenProvider()
+		if err != nil {
+			return err
+		}
+		if err := forge.AssumeRoleWithMFA(assumeRoleArn, mfaToken, assumeRoleMFASerial); err != nil {
+			return err
+		}
+	} else {
+		if err := forge.AssumeRole(assumeRoleArn); err != nil {
+			return err
+		}
 	}
 	return nil
 }
