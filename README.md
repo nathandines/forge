@@ -34,6 +34,7 @@ state of the stack deployment.
   accounts)
 - Enable Termination Protection at deployment time
 - Define multiple parameter files to merge/override parameters
+- Override specific parameters on the command line
 
 ## Available Parameters
 
