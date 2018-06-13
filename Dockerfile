@@ -1,8 +1,17 @@
-# Using alpine as this contains the appropriate CA certificates which are
-# needed ongoing to authenticate the AWS API servers
+FROM golang:latest AS build
+
+WORKDIR /go/src/github.com/nathandines/forge
+COPY . .
+
+RUN make clean && \
+  make deps && \
+  make
+
 FROM alpine:latest
 
-COPY bin/forge /usr/bin/forge
+RUN apk add --no-cache ca-certificates
+
+COPY --from=build /go/src/github.com/nathandines/forge/bin/forge /usr/bin/forge
 
 RUN mkdir /workdir
 WORKDIR /workdir
