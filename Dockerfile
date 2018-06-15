@@ -13,9 +13,6 @@ RUN apk add --no-cache ca-certificates
 
 COPY --from=build /go/src/github.com/nathandines/forge/bin/forge /usr/bin/forge
 
-RUN mkdir /workdir
-WORKDIR /workdir
-
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
