@@ -45,6 +45,9 @@ jobs:
   release-github:
     <<: *defaults
 
+    environment:
+      CGO_ENABLED: '0'
+
     steps:
       - checkout
 
