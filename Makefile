@@ -17,7 +17,7 @@ coverage:
 	go tool cover -html=coverage.out
 
 deps:
-	go get -v -d -t ./...
+	dep ensure -v -vendor-only
 
 clean:
 	rm -rf bin
@@ -25,7 +25,7 @@ clean:
 lint:
 	$(MAKE) -k gofmt govet godiff
 
-GOFMT_CMD = gofmt -s -d .
+GOFMT_CMD = gofmt -s -d main.go forgelib commands
 gofmt:
 	@echo '$(GOFMT_CMD)'
 	@fmtout="$$($(GOFMT_CMD))"; \

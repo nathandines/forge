@@ -15,6 +15,10 @@ jobs:
     steps:
       - checkout
 
+      - run: &install_dep
+          name: Install dep
+          command: command -v dep >/dev/null || curl 'https://raw.githubusercontent.com/golang/dep/master/install.sh' | sh
+
       - run: make deps
 
       - run: make lint
@@ -50,6 +54,8 @@ jobs:
 
     steps:
       - checkout
+
+      - run: *install_dep
 
       - attach_workspace:
           at: bin

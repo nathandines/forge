@@ -3,6 +3,9 @@ FROM golang:latest AS build
 WORKDIR /go/src/github.com/nathandines/forge
 COPY . .
 
+RUN command -v dep >/dev/null || \
+  curl 'https://raw.githubusercontent.com/golang/dep/master/install.sh' | sh
+
 RUN make clean && \
   make deps && \
   make
