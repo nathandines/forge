@@ -148,15 +148,17 @@ jobs:
     docker:
       - image: linuxbrew/linuxbrew:latest
 
+    environment:
+      GIT_AUTHOR_NAME: &git_name Nathan Dines
+      GIT_COMMITTER_NAME: *git_name
+      EMAIL: nath@ndin.es
+
     steps:
       - checkout
 
       - run:
           name: Release to Homebrew Tap
-          command: |
-            git config --global config.name 'CircleCI - nathandines/forge'
-            git config --global config.email 'nath@ndin.es'
-            make brew-release FORGE_VERSION="$CIRCLE_TAG"
+          command: make brew-release FORGE_VERSION="$CIRCLE_TAG"
 
 workflows:
   version: 2
