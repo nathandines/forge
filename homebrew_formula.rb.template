@@ -20,10 +20,10 @@ class Forge < Formula
       system "make", "build"
       bin.mkpath
       bin.install "bin/forge"
-      system bin/"forge", "gen-bash-completion", ">", bash_completion/"forge"
-      system bin/"forge", "gen-zsh-completion", ">", zsh_completion/"forge"
-      prefix.install_metafiles
     end
+    (bash_completion/"forge").write(`#{bin}/forge gen-bash-completion`)
+    (zsh_completion/"forge").write(`#{bin}/forge gen-zsh-completion`)
+    prefix.install_metafiles
   end
 
   test do
