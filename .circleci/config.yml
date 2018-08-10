@@ -148,12 +148,14 @@ jobs:
     docker:
       - image: linuxbrew/linuxbrew:latest
 
-    environment:
-      GIT_AUTHOR_NAME: CircleCI
-      GIT_AUTHOR_EMAIL: nath@ndin.es
-
     steps:
       - checkout
+
+      - run:
+          name: Set Git Name and Email
+          command: |
+            git config --global config.name 'CircleCI - nathandines/forge'
+            git config --global config.email 'nath@ndin.es'
 
       - run:
           name: Release to Homebrew Tap
