@@ -1,0 +1,32 @@
+class Forge < Formula
+  desc "Continuous Delivery friendly CloudFormation deployment tool"
+  homepage "https://github.com/nathandines/forge"
+  url "{{ archive_url }}"
+  sha256 "{{ archive_sha256 }}"
+
+  bottle :unneeded
+
+  depends_on "dep" => :build
+  depends_on "go" => :build
+
+  def install
+    ENV["GOPATH"] = buildpath
+
+    src_path = buildpath/"src/github.com/nathandines/forge"
+    src_path.install Dir["*"]
+
+    cd src_path do
+      system "make", "deps"
+      system "make", "build"
+      bin.mkpath
+      bin.install "bin/forge"
+      system bin/"forge", "gen-bash-completion", ">", bash_completion/"forge"
+      system bin/"forge", "gen-zsh-completion", ">", zsh_completion/"forge"
+      prefix.install_metafiles
+    end
+  end
+
+  test do
+    system bin/"forge", "--version"
+  end
+end

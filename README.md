@@ -44,7 +44,15 @@ help applicable to your version of _Forge_
 
 ## Getting Started
 
-### Download and Installation
+### macOS
+
+On macOS, just use Homebrew to install and you're done!
+
+```sh
+brew install nathandines/tap/forge
+```
+
+### Other Platforms Download and Installation
 
 Go to the [latest release page on
 GitHub](https://github.com/nathandines/forge/releases/latest) to download the
@@ -185,10 +193,16 @@ above.
 
 ### Development
 
+#### Get Dependencies
+
+```sh
+make deps
+```
+
 #### Build
 
 ```sh
-make
+make build
 ```
 
 #### Test
