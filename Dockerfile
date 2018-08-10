@@ -8,7 +8,7 @@ RUN command -v dep >/dev/null || \
 
 RUN make clean && \
   make deps && \
-  make
+  make build
 
 FROM alpine:latest
 

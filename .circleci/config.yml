@@ -153,6 +153,8 @@ jobs:
       GIT_AUTHOR_EMAIL: nath@ndin.es
 
     steps:
+      - checkout
+
       - run:
           name: Release to Homebrew Tap
           command: make brew-release FORGE_VERSION="$CIRCLE_TAG"
