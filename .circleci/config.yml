@@ -152,14 +152,11 @@ jobs:
       - checkout
 
       - run:
-          name: Set Git Name and Email
+          name: Release to Homebrew Tap
           command: |
             git config --global config.name 'CircleCI - nathandines/forge'
             git config --global config.email 'nath@ndin.es'
-
-      - run:
-          name: Release to Homebrew Tap
-          command: make brew-release FORGE_VERSION="$CIRCLE_TAG"
+            make brew-release FORGE_VERSION="$CIRCLE_TAG"
 
 workflows:
   version: 2
