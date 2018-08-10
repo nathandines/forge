@@ -31,7 +31,7 @@ jobs:
           make test | tee "${TEST_RESULTS}/go-test.out"
 
       # smoke test
-      - run: make
+      - run: make build
       - run: ./bin/forge --version
 
       - store_artifacts:
