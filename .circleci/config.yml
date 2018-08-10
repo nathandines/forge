@@ -156,6 +156,9 @@ jobs:
     steps:
       - checkout
 
+      - add_ssh_keys:
+          fingerprints:
+            - '5d:60:98:cf:bb:eb:cf:87:06:44:e7:18:9f:61:87:b6'
       - run:
           name: Release to Homebrew Tap
           command: make brew-release FORGE_VERSION="$CIRCLE_TAG"
