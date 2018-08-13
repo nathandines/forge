@@ -15,7 +15,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <projectSourceUrl>https://github.com/nathandines/forge</projectSourceUrl>
     <bugTrackerUrl>https://github.com/nathandines/forge/issues</bugTrackerUrl>
-    <releaseNotes>https://github.com/nathandines/forge/releases/tag/{{ package_version }}</releaseNotes>
+    <releaseNotes>https://github.com/nathandines/forge/releases/tag/v{{ package_version }}</releaseNotes>
     <tags>forge cloudformation aws golang continuous-delivery</tags>
     <summary>Continuous Delivery friendly CloudFormation deployment tool</summary>
     <description>
