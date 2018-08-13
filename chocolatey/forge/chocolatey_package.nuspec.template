@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Do not remove this test for UTF-8: if “Ω” doesn’t appear as greek uppercase omega letter enclosed in quotation marks, you should use an editor that supports UTF-8, not this one. -->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>forge</id>
+    <version>{{ package_version }}</version>
+    <packageSourceUrl>https://github.com/nathandines/forge</packageSourceUrl>
+    <owners>Nathan Dines</owners>
+
+    <title>forge</title>
+    <authors>Nathan Dines</authors>
+    <projectUrl>https://github.com/nathandines/forge</projectUrl>
+    <copyright>2018 Nathan Dines</copyright>
+    <licenseUrl>https://github.com/nathandines/forge/blob/master/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/nathandines/forge</projectSourceUrl>
+    <bugTrackerUrl>https://github.com/nathandines/forge/issues</bugTrackerUrl>
+    <tags>forge cloudformation aws golang continuous-delivery</tags>
+    <summary>Continuous Delivery friendly CloudFormation deployment tool</summary>
+    <description>
+      Forge is a simple tool which makes deploying CloudFormation stacks a bit easier in continuous delivery environments. In contrast to awscli, Forge provides a mechanism to create, update and delete CloudFormation stacks synchronously, while also providing output on the stack events, and an exit code reflecting the final state of the stack deployment.
+    </description>
+  </metadata>
+  <files>
+    <file src="tools/**" target="tools" />
+  </files>
+</package>

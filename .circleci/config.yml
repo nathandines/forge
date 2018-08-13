@@ -42,9 +42,10 @@ jobs:
           path: /tmp/test-results
 
       - persist_to_workspace:
-          root: bin
+          root: '.'
           paths:
-            - '*'
+            - bin
+            - vendor
 
   release-github:
     <<: *defaults
@@ -55,10 +56,8 @@ jobs:
     steps:
       - checkout
 
-      - run: *install_dep
-
       - attach_workspace:
-          at: bin
+          at: '.'
 
       - run: &validate_tag_version
           name: Validate Tag Version
@@ -125,7 +124,7 @@ jobs:
       - checkout
 
       - attach_workspace:
-          at: bin
+          at: '.'
 
       - run: *validate_tag_version
 
@@ -163,6 +162,26 @@ jobs:
           name: Release to Homebrew Tap
           command: make brew-release FORGE_VERSION="$CIRCLE_TAG"
 
+  release-chocolatey:
+    docker:
+      - image: linuturk/mono-choco:latest
+
+    steps:
+      - checkout
+
+      - attach_workspace:
+          at: '.'
+
+      - run:
+          name: Install make
+          command: |
+            apt-get update
+            apt-get install make
+
+      - run:
+          name: Release to Chocolatey
+          command: make choco-release FORGE_VERSION="$CIRCLE_TAG" LICENSE_COMMIT="$CIRCLE_SHA1"
+
 workflows:
   version: 2
   build-n-release:
@@ -189,6 +208,15 @@ workflows:
             branches:
               ignore: /.*/
       - release-homebrew:
+          requires:
+            - release-github
+          filters:
+            tags:
+              only: /^v\d+(?:\.\d+){2}$/
+            branches:
+              ignore: /.*/
+      - release-chocolatey:
+          context: chocolatey
           requires:
             - release-github
           filters:

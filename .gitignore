@@ -2,3 +2,9 @@ bin
 vendor
 coverage.out
 homebrew
+chocolatey/forge/forge.nuspec
+chocolatey/forge/tools/LICENSE.txt
+chocolatey/forge/tools/VERIFICATION.txt
+chocolatey/**/*.exe
+chocolatey/**/*.nupkg
+chocolatey/**/*.zip
