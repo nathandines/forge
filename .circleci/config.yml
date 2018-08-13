@@ -167,16 +167,16 @@ jobs:
       - image: linuturk/mono-choco:latest
 
     steps:
-      - checkout
-
-      - attach_workspace:
-          at: '.'
-
       - run:
           name: Install build deps
           command: |
             apt-get update
             apt-get install git make openssh-client
+
+      - checkout
+
+      - attach_workspace:
+          at: '.'
 
       - run:
           name: Release to Chocolatey
