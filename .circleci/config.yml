@@ -171,7 +171,7 @@ jobs:
           name: Install build deps
           command: |
             apt-get -y update
-            apt-get -y install git make openssh-client
+            apt-get -y install git make openssh-client curl zip
 
       - checkout
 
