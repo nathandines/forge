@@ -13,7 +13,7 @@ $packageArgs = @{
 Get-ChocolateyUnzip @packageArgs
 Remove-Item $zip_path -ea 0
 
-if ((Get-OSArchitectureWidth 64) -or $Env:ChocolateyForceX86) {
+if ((Get-OSArchitectureWidth 64) -and ($Env:ChocolateyForceX86 -ne 'true')) {
     Write-Verbose "Removing x32 version"
     Remove-Item "$toolsPath/forge32.exe" -ea 0
     Move-Item "$toolsPath/forge64.exe" "$toolsPath/forge.exe" -Force
