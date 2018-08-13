@@ -173,10 +173,10 @@ jobs:
           at: '.'
 
       - run:
-          name: Install make
+          name: Install build deps
           command: |
             apt-get update
-            apt-get install make
+            apt-get install git make openssh-client
 
       - run:
           name: Release to Chocolatey
