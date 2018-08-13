@@ -164,14 +164,14 @@ jobs:
 
   release-chocolatey:
     docker:
-      - image: linuturk/mono-choco:latest
+      - image: nathandines/mono-choco:latest
 
     steps:
       - run:
           name: Install build deps
           command: |
             apt-get -y update
-            apt-get -y install git make openssh-client curl zip
+            apt-get -y install make zip
 
       - checkout
 
