@@ -84,4 +84,5 @@ choco-package:
 
 choco-release: choco-package
 	$(eval FORGE_VERSION ?= $(shell '$(BINARY)' --version | awk '{ print $$NF }'))
-	dotnet nuget push -k '$(CHOCO_API_KEY)' -s 'https://push.chocolatey.org/' '$(CHOCO_FORGE_PATH)/forge.$(FORGE_VERSION:v%=%).nupkg'
+	@echo 'Pushing to Chocolatey...'
+	@dotnet nuget push -k '$(CHOCO_API_KEY)' -s 'https://push.chocolatey.org/' '$(CHOCO_FORGE_PATH)/forge.$(FORGE_VERSION:v%=%).nupkg'
