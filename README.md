@@ -209,31 +209,31 @@ above.
 - [Go](https://golang.org/)
 - [dep](https://github.com/golang/dep)
 
-##### Get Dependencies
+#### Get Dependencies
 
 ```sh
 make deps
 ```
 
-##### Build
+#### Build
 
 ```sh
 make build
 ```
 
-##### Test
+#### Test
 
 ```sh
 make test
 ```
 
-##### Linting
+#### Linting
 
 ```sh
 make lint
 ```
 
-##### Clean workspace
+#### Clean workspace
 
 ```sh
 make clean
