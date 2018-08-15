@@ -42,7 +42,7 @@ state of the stack deployment.
 To see what options are available to you, execute `forge --help` for the latest
 help applicable to your version of _Forge_
 
-## Getting Started
+## Installation
 
 ### macOS
 
@@ -52,7 +52,15 @@ On macOS, just use Homebrew to install and you're done!
 brew install nathandines/tap/forge
 ```
 
-### Other Platforms Download and Installation
+### Windows
+
+On Windows, just use Chocolatey to install and you're done!
+
+```powershell
+choco install forge
+```
+
+### Other
 
 Go to the [latest release page on
 GitHub](https://github.com/nathandines/forge/releases/latest) to download the
@@ -86,6 +94,8 @@ forge gen-bash-completion > /etc/bash_completion.d/forge
 # or
 forge gen-zsh-completion > ~/.zsh_completions.d/forge
 ```
+
+## Feature Usage
 
 ### Using Environment Variables in Parameter or Tag files
 
@@ -193,37 +203,43 @@ above.
 
 ### Development
 
-#### Get Dependencies
+#### Requirements
+
+- GNU Make
+- [Go](https://golang.org/)
+- [dep](https://github.com/golang/dep)
+
+##### Get Dependencies
 
 ```sh
 make deps
 ```
 
-#### Build
+##### Build
 
 ```sh
 make build
 ```
 
-#### Test
+##### Test
 
 ```sh
 make test
 ```
 
-#### Linting
+##### Linting
 
 ```sh
 make lint
 ```
 
-#### Clean workspace
+##### Clean workspace
 
 ```sh
 make clean
 ```
 
-### Change AWS Service Endpoints
+#### Change AWS Service Endpoints
 
 You can currently change the service endpoints for both CloudFormation and STS by setting the following environment variables when running _Forge_:
 
