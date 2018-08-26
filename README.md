@@ -5,6 +5,7 @@
 [![Github All Releases](https://img.shields.io/github/downloads/nathandines/forge/total.svg)](https://github.com/nathandines/forge/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nathandines/forge)](https://goreportcard.com/report/github.com/nathandines/forge)
 [![Docker Image](https://img.shields.io/badge/docker-nathandines%2Fforge-blue.svg)](https://hub.docker.com/r/nathandines/forge/)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fnathandines%2Fforge.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fnathandines%2Fforge?ref=badge_shield)
 
 _Forge_ is a simple tool which makes deploying CloudFormation stacks a bit
 easier in continuous delivery environments. In contrast to
@@ -246,3 +247,7 @@ You can currently change the service endpoints for both CloudFormation and STS b
 - AWS_ENDPOINT_CLOUDFORMATION
 - AWS_ENDPOINT_IAM
 - AWS_ENDPOINT_STS
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fnathandines%2Fforge.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fnathandines%2Fforge?ref=badge_large)
