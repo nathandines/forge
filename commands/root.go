@@ -32,7 +32,7 @@ friendly for continuous delivery environments.
 
 GitHub: https://github.com/nathandines/forge
 `,
-	Version: "v2.2.5",
+	Version: "v2.2.6-develop",
 }
 
 func init() {
