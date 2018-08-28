@@ -6,8 +6,7 @@ class Forge < Formula
 
   bottle :unneeded
 
-  depends_on "dep" => :build
-  depends_on "go" => :build
+  depends_on "go@1.11" => :build
 
   def install
     ENV["GOPATH"] = buildpath
@@ -16,7 +15,6 @@ class Forge < Formula
     src_path.install Dir["*"]
 
     cd src_path do
-      system "make", "deps"
       system "make", "build"
       bin.mkpath
       bin.install "bin/forge"

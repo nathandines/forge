@@ -206,14 +206,7 @@ above.
 #### Requirements
 
 - GNU Make
-- [Go](https://golang.org/)
-- [dep](https://github.com/golang/dep)
-
-#### Get Dependencies
-
-```sh
-make deps
-```
+- [Go v1.11+](https://golang.org/)
 
 #### Build
 
@@ -231,6 +224,12 @@ make test
 
 ```sh
 make lint
+```
+
+#### Update Dependencies
+
+```sh
+make update-deps
 ```
 
 #### Clean workspace

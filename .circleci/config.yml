@@ -1,6 +1,5 @@
 ---
 defaults: &defaults
-  working_directory: /go/src/github.com/nathandines/forge
   docker:
     - image: circleci/golang:latest
 
@@ -14,12 +13,6 @@ jobs:
 
     steps:
       - checkout
-
-      - run: &install_dep
-          name: Install dep
-          command: command -v dep >/dev/null || curl 'https://raw.githubusercontent.com/golang/dep/master/install.sh' | sh
-
-      - run: make deps
 
       - run: make lint
 
@@ -45,7 +38,6 @@ jobs:
           root: '.'
           paths:
             - bin
-            - vendor
 
   release-github:
     <<: *defaults
@@ -75,7 +67,6 @@ jobs:
             GOOS: linux
             GOARCH: '386'
           command: &build_cmd |
-            make deps
             go build -v -o "release/forge_${CIRCLE_TAG}_${GOOS}_${GOARCH}${FILEEXT}"
 
       - run:

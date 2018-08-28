@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"time"
 
-	forge "github.com/nathandines/forge/forgelib"
+	forge "github.com/nathandines/forge/v2/forgelib"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"

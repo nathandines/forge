@@ -1,10 +1,10 @@
-.PHONY: build test clean deps lint gofmt govet godiff coverage choco-package choco-release brew-release
+.PHONY: build test clean update-deps lint gofmt govet godiff coverage choco-package choco-release brew-release
 
 BINARY = bin/forge
 
 build: $(BINARY)
 
-$(BINARY): deps
+$(BINARY):
 	CGO_ENABLED=0 go build -o '$(BINARY)'
 
 test:
@@ -20,8 +20,9 @@ coverage:
 		go test -coverprofile=../coverage.out
 	go tool cover -html=coverage.out
 
-deps:
-	dep ensure -v -vendor-only
+update-deps:
+	go get -u
+	go mod tidy
 
 clean:
 	rm -rf bin
