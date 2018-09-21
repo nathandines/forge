@@ -67,7 +67,7 @@ GitHub](https://github.com/nathandines/forge/releases/latest) to download the
 latest stable version.
 
 Next, move the downloaded binary to a directory which is on your path, and
-rename it to `forge`. On Unix systems, `~/bin` or `/usr/local/bin` are good
+rename it to `forge`. On *nix systems, `~/bin` or `/usr/local/bin` are good
 options depending on whether you want to restrict the install to just your user
 or install it system-wide. On Windows systems, a similar pattern is advised;
 `%USERPROFILE%\bin` for a single user, or `%PROGRAMDATA%\bin` for multiple
