@@ -90,7 +90,6 @@ func TestDeploy(t *testing.T) {
 		stackPolicyInput      string
 		tagInput              string
 		terminationProtection bool
-		thisStack             Stack
 	}{
 		// Create new stack with previously used name
 		{
@@ -958,18 +957,15 @@ func TestDeploy(t *testing.T) {
 		}
 		stsClient = mockSTS{accountID: c.accountID}
 
-		thisStack := c.thisStack
-		if reflect.DeepEqual(thisStack, Stack{}) {
-			thisStack = Stack{
-				ParameterBodies:       c.parameterInput,
-				ParameterOverrides:    c.parameterOverrides,
-				StackName:             "test-stack",
-				TagsBody:              c.tagInput,
-				TemplateBody:          `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
-				CfnRoleName:           c.cfnRoleName,
-				StackPolicyBody:       c.stackPolicyInput,
-				TerminationProtection: c.terminationProtection,
-			}
+		thisStack := Stack{
+			ParameterBodies:       c.parameterInput,
+			ParameterOverrides:    c.parameterOverrides,
+			StackName:             "test-stack",
+			TagsBody:              c.tagInput,
+			TemplateBody:          `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
+			CfnRoleName:           c.cfnRoleName,
+			StackPolicyBody:       c.stackPolicyInput,
+			TerminationProtection: c.terminationProtection,
 		}
 
 		output, err := thisStack.Deploy()
