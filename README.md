@@ -49,7 +49,8 @@ help applicable to your version of _Forge_
 On macOS, just use Homebrew to install and you're done!
 
 ```sh
-brew install nathandines/tap/forge
+brew tap nathandines/tap
+brew install forge
 ```
 
 ### Windows
