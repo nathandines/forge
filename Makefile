@@ -48,11 +48,12 @@ godiff:
 BREW_FORMULA := homebrew/forge.rb
 brew-release:
 	$(eval FORGE_VERSION  ?= $(shell '$(BINARY)' --version | awk '{ print $$NF }'))
-	$(eval ARCHIVE_URL    := https://github.com/nathandines/forge/archive/$(FORGE_VERSION).tar.gz)
-	$(eval ARCHIVE_SHA256 := $(shell curl -o - -Ls '$(ARCHIVE_URL)' | shasum -a 256 | awk '{ print $$1 }'))
+	$(eval BIN_URL    := https://github.com/nathandines/forge/releases/download/$(FORGE_VERSION)/forge_$(FORGE_VERSION)_darwin_amd64)
+	$(eval BIN_SHA256 := $(shell curl -o - -Ls '$(BIN_URL)' | shasum -a 256 | awk '{ print $$1 }'))
 	[ -d homebrew ] || git clone 'git@github.com:nathandines/homebrew-tap.git' 'homebrew'
-	sed -e 's;{{ archive_url }};$(ARCHIVE_URL);g' \
-		-e 's;{{ archive_sha256 }};$(ARCHIVE_SHA256);g' \
+	sed -e 's;{{ bin_url }};$(BIN_URL);g' \
+		-e 's;{{ bin_sha256 }};$(BIN_SHA256);g' \
+		-e 's;{{ version }};$(FORGE_VERSION:v%=%);g' \
 		homebrew_formula.rb.template > '$(BREW_FORMULA)'
 	brew audit --strict '$(BREW_FORMULA)'
 	cd 'homebrew' && \
