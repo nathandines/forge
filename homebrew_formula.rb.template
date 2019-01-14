@@ -11,9 +11,10 @@ class Forge < Formula
     bin.mkpath
     bin.install "forge_v{{ version }}_darwin_amd64"
     mv bin/"forge_v{{ version }}_darwin_amd64", bin/"forge"
+    chmod 0755, bin/"forge"
 
-    (bash_completion/"forge").write(bin/"forge gen-bash-completion")
-    (zsh_completion/"forge").write(bin/"forge gen-zsh-completion")
+    (bash_completion/"forge").write(`#{bin}/forge gen-bash-completion`)
+    (zsh_completion/"forge").write(`#{bin}/forge gen-zsh-completion`)
 
     prefix.install_metafiles
   end
