@@ -5,6 +5,16 @@ defaults: &defaults
 
 version: 2
 jobs:
+  set-nightly:
+    docker:
+      - image: alpine:latest
+    steps:
+      - run: touch '.nightly'
+      - persist_to_workspace:
+          root: '.'
+          paths:
+            - .nightly
+
   build:
     <<: *defaults
 
@@ -13,6 +23,16 @@ jobs:
 
     steps:
       - checkout
+
+      # Update dependencies on nightly run to confirm compatibility with the latest versions of
+      # dependencies
+      - attach_workspace:
+          at: '.'
+
+      - run: |
+          if [[ -f '.nightly' ]]; then
+            make update-deps
+          fi
 
       - run: make lint
 
@@ -222,7 +242,9 @@ workflows:
           filters:
             branches:
               only:
-                - master
                 - develop
     jobs:
-      - build
+      - set-nightly
+      - build:
+          requires:
+            - set-nightly
