@@ -10,6 +10,8 @@ jobs:
       - image: alpine:latest
     steps:
       - run: touch '.nightly'
+      # Add CA certificates for persisting `.nightly` to the workspace
+      - run: apk add --update ca-certificates
       - persist_to_workspace:
           root: '.'
           paths:
