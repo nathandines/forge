@@ -32,7 +32,7 @@ var deployCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if (templateFile != "" && templateUrl != "") {
+		if templateFile != "" && templateUrl != "" {
 			if err := cmd.Usage(); err != nil {
 				log.Fatal(err)
 			}

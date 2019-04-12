@@ -5,10 +5,10 @@ import (
 
 	"github.com/ghodss/yaml"
 
-	"github.com/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/pkg/errors"
 )
 
 // DeployOut provides a controlled format for information to be passed out of
