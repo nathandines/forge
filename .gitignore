@@ -8,3 +8,5 @@ chocolatey/forge/tools/VERIFICATION.txt
 chocolatey/**/*.exe
 chocolatey/**/*.nupkg
 chocolatey/**/*.zip
+cf-scripts
+forge

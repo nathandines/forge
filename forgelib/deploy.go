@@ -5,6 +5,7 @@ import (
 
 	"github.com/ghodss/yaml"
 
+	"github.com/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -18,13 +19,19 @@ type DeployOut struct {
 
 // Deploy will create or update the stack (depending on its current state)
 func (s *Stack) Deploy() (output DeployOut, err error) {
-	validationResult, err := cfnClient.ValidateTemplate(
-		&cloudformation.ValidateTemplateInput{
-			TemplateBody: aws.String(s.TemplateBody),
-		},
-	)
+	var validateConfig cloudformation.ValidateTemplateInput
+
+	if s.TemplateUrl != "" {
+		validateConfig = cloudformation.ValidateTemplateInput{TemplateURL: aws.String(s.TemplateUrl)}
+	}
+
+	if s.TemplateBody != "" {
+		validateConfig = cloudformation.ValidateTemplateInput{TemplateBody: aws.String(s.TemplateBody)}
+	}
+
+	validationResult, err := cfnClient.ValidateTemplate(&validateConfig)
 	if err != nil {
-		return output, err
+		return output, errors.Wrap(err, "Failed to Validate Template")
 	}
 
 	if err := s.GetStackInfo(); err != nil {
@@ -36,7 +43,7 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 				return output, err
 			}
 		} else {
-			return output, err
+			return output, errors.Wrap(err, "Error in GetStackInfo")
 		}
 	}
 
@@ -91,28 +98,35 @@ TEMPLATE_PARAMETERS:
 	if s.StackPolicyBody != "" {
 		jsonStackPolicy, err := yaml.YAMLToJSON([]byte(s.StackPolicyBody))
 		if err != nil {
-			return output, err
+			return output, errors.Wrap(err, "Unable to convert template policy from YAML to JSON")
 		}
 		jsonStackPolicyString := string(jsonStackPolicy)
 		inputStackPolicy = &jsonStackPolicyString
 	}
 
+	createConfig := cloudformation.CreateStackInput{
+		StackName:                   aws.String(s.StackName),
+		OnFailure:                   aws.String("DELETE"),
+		Capabilities:                validationResult.Capabilities,
+		Tags:                        tags,
+		Parameters:                  inputParams,
+		RoleARN:                     roleARN,
+		StackPolicyBody:             inputStackPolicy,
+		EnableTerminationProtection: aws.Bool(s.TerminationProtection),
+	}
+
+	if s.TemplateUrl != "" {
+		createConfig.TemplateURL = aws.String(s.TemplateUrl)
+	}
+
+	if s.TemplateBody != "" {
+		createConfig.TemplateBody = aws.String(s.TemplateBody)
+	}
+
 	if s.StackInfo == nil {
-		createOut, err := cfnClient.CreateStack(
-			&cloudformation.CreateStackInput{
-				StackName:                   aws.String(s.StackName),
-				TemplateBody:                aws.String(s.TemplateBody),
-				OnFailure:                   aws.String("DELETE"),
-				Capabilities:                validationResult.Capabilities,
-				Tags:                        tags,
-				Parameters:                  inputParams,
-				RoleARN:                     roleARN,
-				StackPolicyBody:             inputStackPolicy,
-				EnableTerminationProtection: aws.Bool(s.TerminationProtection),
-			},
-		)
+		createOut, err := cfnClient.CreateStack(&createConfig)
 		if err != nil {
-			return output, err
+			return output, errors.Wrap(err, "Failed to Create Stack")
 		}
 		s.StackID = *createOut.StackId
 	} else {
@@ -127,20 +141,27 @@ TEMPLATE_PARAMETERS:
 				},
 			)
 			if err != nil {
-				return output, err
+				return output, errors.Wrap(err, "Failed to Update Termination Protection")
 			}
 		}
-		_, err := cfnClient.UpdateStack(
-			&cloudformation.UpdateStackInput{
-				StackName:       aws.String(s.StackID),
-				TemplateBody:    aws.String(s.TemplateBody),
-				Capabilities:    validationResult.Capabilities,
-				Tags:            tags,
-				Parameters:      inputParams,
-				RoleARN:         roleARN,
-				StackPolicyBody: inputStackPolicy,
-			},
-		)
+
+		updateConfig := cloudformation.UpdateStackInput{
+			StackName:       aws.String(s.StackID),
+			Capabilities:    validationResult.Capabilities,
+			Tags:            tags,
+			Parameters:      inputParams,
+			RoleARN:         roleARN,
+			StackPolicyBody: inputStackPolicy,
+		}
+
+		if s.TemplateUrl != "" {
+			updateConfig.TemplateURL = aws.String(s.TemplateUrl)
+		}
+
+		if s.TemplateBody != "" {
+			updateConfig.TemplateBody = aws.String(s.TemplateBody)
+		}
+		_, err := cfnClient.UpdateStack(&updateConfig)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				noUpdatesErr := "No updates are to be performed."
@@ -148,7 +169,7 @@ TEMPLATE_PARAMETERS:
 					return DeployOut{Message: noUpdatesErr}, nil
 				}
 			}
-			return output, err
+			return output, errors.Wrap(err, "Failed to Update Stack")
 		}
 	}
 	return

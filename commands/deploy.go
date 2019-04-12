@@ -13,6 +13,7 @@ import (
 
 var tagsFile string
 var templateFile string
+var templateUrl string
 var parameterFiles []string
 var parameterOverrides []string
 var stackPolicyFile string
@@ -21,19 +22,34 @@ var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "Deploy a CloudFormation Stack",
 	Run: func(cmd *cobra.Command, args []string) {
-		// Read template-file
-		if templateFile == "" {
+		// Read template-file or use template-url
+
+		if templateFile == "" && templateUrl == "" {
 			if err := cmd.Usage(); err != nil {
 				log.Fatal(err)
 			}
-			fmt.Printf("\nArgument 'template-file' is required\n")
+			fmt.Printf("\nArgument 'template-file' or 'template-url' is required\n")
 			os.Exit(1)
 		}
-		templateBody, err := ioutil.ReadFile(templateFile)
-		if err != nil {
-			log.Fatal(err)
+
+		if (templateFile != "" && templateUrl != "") {
+			if err := cmd.Usage(); err != nil {
+				log.Fatal(err)
+			}
+			fmt.Printf("\nEither argument 'template-file' or 'template-url' is required; both cannot be defined\n")
+			os.Exit(1)
 		}
-		stack.TemplateBody = string(templateBody)
+
+		if templateFile != "" {
+			templateBody, err := ioutil.ReadFile(templateFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			stack.TemplateBody = string(templateBody)
+		}
+		if templateUrl != "" {
+			stack.TemplateUrl = templateUrl
+		}
 
 		// Read tags-file
 		if tagsFile != "" {
@@ -54,6 +70,7 @@ var deployCmd = &cobra.Command{
 		}
 
 		// Parse parameter overrides
+		var err error
 		stack.ParameterOverrides, err = parseParameterOverrideArgs(parameterOverrides)
 		if err != nil {
 			log.Fatal(err)
@@ -70,7 +87,7 @@ var deployCmd = &cobra.Command{
 
 		if assumeRoleArn != "" {
 			if err := assumeRole(); err != nil {
-				log.Fatal(err)
+				log.Fatal("Failed to assume role: ", err)
 			}
 		}
 
@@ -87,7 +104,7 @@ var deployCmd = &cobra.Command{
 
 		output, err := stack.Deploy()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err, output)
 		}
 
 		if t := "No updates are to be performed."; output.Message == t {
@@ -132,9 +149,16 @@ func init() {
 		"template-file",
 		"t",
 		"",
-		"Path to the CloudFormation template to be deployed",
+		"Path to the CloudFormation template to be deployed.  Must not specify template-url.",
 	)
 	deployCmd.MarkFlagFilename("template-file")
+
+	deployCmd.PersistentFlags().StringVar(
+		&templateUrl,
+		"template-url",
+		"",
+		"S3 url to the CloudFormation template to be deployed.  Must not specify template-file.",
+	)
 
 	deployCmd.PersistentFlags().StringSliceVarP(
 		&parameterFiles,

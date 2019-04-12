@@ -15,6 +15,7 @@ type Stack struct {
 	StackPolicyBody       string
 	TagsBody              string
 	TemplateBody          string
+	TemplateUrl           string
 	TerminationProtection bool
 }
 

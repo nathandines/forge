@@ -19,23 +19,45 @@ func (s *Stack) ListEvents(after *time.Time) (events []*cloudformation.StackEven
 	if s.StackID == "" {
 		return events, errorNoStackID
 	}
-	err = cfnClient.DescribeStackEventsPages(
-		&cloudformation.DescribeStackEventsInput{
-			StackName: &s.StackID,
-		}, func(page *cloudformation.DescribeStackEventsOutput, lastPage bool) bool {
-			for _, e := range page.StackEvents {
-				if e.Timestamp.UnixNano() > after.UnixNano() {
-					events = append(events, e)
-				}
+	// Find any nested stacks
+	allStacks := []string{s.StackID}
+
+	for n := 0; n < len(allStacks); n++ {
+		resources, err := cfnClient.DescribeStackResources(
+			&cloudformation.DescribeStackResourcesInput{
+				StackName: &allStacks[n],
+			},
+		)
+		if err != nil {
+			continue
+		}
+
+		for _, resource := range resources.StackResources {
+			if *resource.ResourceType == "AWS::CloudFormation::Stack" {
+				allStacks = append(allStacks, *resource.PhysicalResourceId)
 			}
-			// Continue reading all pages
-			return true
-		},
-	)
-	if err != nil {
-		return events, err
+
+		}
 	}
 
+	for _, stack := range allStacks {
+		err = cfnClient.DescribeStackEventsPages(
+			&cloudformation.DescribeStackEventsInput{
+				StackName: &stack,
+			}, func(page *cloudformation.DescribeStackEventsOutput, lastPage bool) bool {
+				for _, e := range page.StackEvents {
+					if e.Timestamp.UnixNano() > after.UnixNano() {
+						events = append(events, e)
+					}
+				}
+				// Continue reading all pages
+				return true
+			},
+		)
+		if err != nil {
+			return events, err
+		}
+	}
 	sort.Sort(byTime(events))
 
 	return
