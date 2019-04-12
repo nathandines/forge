@@ -252,6 +252,11 @@ func (m mockCfn) DescribeStackEventsPages(input *cloudformation.DescribeStackEve
 	return nil
 }
 
+func (m mockCfn) DescribeStackResources(input *cloudformation.DescribeStackResourcesInput) (*cloudformation.DescribeStackResourcesOutput, error) {
+	output := cloudformation.DescribeStackResourcesOutput{}
+	return &output, nil
+}
+
 func (m mockCfn) UpdateTerminationProtection(input *cloudformation.UpdateTerminationProtectionInput) (*cloudformation.UpdateTerminationProtectionOutput, error) {
 	output := cloudformation.UpdateTerminationProtectionOutput{}
 	// For each existing stack, match against the stack ID first, then the stack
