@@ -1,6 +1,7 @@
 package forgelib
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/ghodss/yaml"
@@ -34,29 +35,6 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 		return output, errors.Wrap(err, "Failed to Validate Template")
 	}
 
-	if err := s.GetStackInfo(); err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			switch awsErr.Message() {
-			case fmt.Sprintf("Stack with id %s does not exist", s.StackID),
-				fmt.Sprintf("Stack with id %s does not exist", s.StackName):
-			default:
-				return output, err
-			}
-		} else {
-			return output, errors.Wrap(err, "Error in GetStackInfo")
-		}
-	}
-
-	var tags []*cloudformation.Tag
-	if s.TagsBody != "" {
-		tags, err = parseTags(s.TagsBody)
-		if err != nil {
-			return output, err
-		}
-	} else if s.StackInfo != nil {
-		tags = s.StackInfo.Tags
-	}
-
 	var inputParams []*cloudformation.Parameter
 	parsedParameters := []*cloudformation.Parameter{}
 	if len(s.ParameterBodies) != 0 {
@@ -83,6 +61,70 @@ TEMPLATE_PARAMETERS:
 				continue TEMPLATE_PARAMETERS
 			}
 		}
+	}
+
+	if s.StackName == "" {
+		/*
+			If StackName is not defined use Metadata:StackName:<Parameter>:<ParameterValue>
+
+			------ Example with Environment Parameter ----
+			  Metadata:
+			    StackName:
+			      Environment:
+			        staging: search-ui-v1-staging
+			        production: search-ui-v1-production
+		*/
+		var templateSummaryConfig cloudformation.GetTemplateSummaryInput
+
+		if s.TemplateUrl != "" {
+			templateSummaryConfig = cloudformation.GetTemplateSummaryInput{TemplateURL: aws.String(s.TemplateUrl)}
+		}
+
+		if s.TemplateBody != "" {
+			templateSummaryConfig = cloudformation.GetTemplateSummaryInput{TemplateBody: aws.String(s.TemplateBody)}
+		}
+
+		TemplateSummary, err := cfnClient.GetTemplateSummary(&templateSummaryConfig)
+		if err != nil {
+			return output, errors.Wrap(err, "Failed to get Template Summary")
+		}
+
+		type Metadata struct {
+			StackName map[string]map[string]string
+		}
+		myMetadata := Metadata{}
+		json.Unmarshal([]byte(*TemplateSummary.Metadata), &myMetadata)
+
+		for k, v := range myMetadata.StackName {
+			for _, pv := range inputParams {
+				if *pv.ParameterKey == k {
+					s.StackName = v[*pv.ParameterValue]
+				}
+			}
+		}
+	}
+
+	if err := s.GetStackInfo(); err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			switch awsErr.Message() {
+			case fmt.Sprintf("Stack with id %s does not exist", s.StackID),
+				fmt.Sprintf("Stack with id %s does not exist", s.StackName):
+			default:
+				return output, err
+			}
+		} else {
+			return output, errors.Wrap(err, "Error in GetStackInfo")
+		}
+	}
+
+	var tags []*cloudformation.Tag
+	if s.TagsBody != "" {
+		tags, err = parseTags(s.TagsBody)
+		if err != nil {
+			return output, err
+		}
+	} else if s.StackInfo != nil {
+		tags = s.StackInfo.Tags
 	}
 
 	var roleARN *string
