@@ -93,12 +93,15 @@ TEMPLATE_PARAMETERS:
 			StackName map[string]map[string]string
 		}
 		myMetadata := Metadata{}
-		json.Unmarshal([]byte(*TemplateSummary.Metadata), &myMetadata)
 
-		for k, v := range myMetadata.StackName {
-			for _, pv := range inputParams {
-				if *pv.ParameterKey == k {
-					s.StackName = v[*pv.ParameterValue]
+		if TemplateSummary.Metadata != nil {
+			json.Unmarshal([]byte(*TemplateSummary.Metadata), &myMetadata)
+
+			for k, v := range myMetadata.StackName {
+				for _, pv := range inputParams {
+					if *pv.ParameterKey == k {
+						s.StackName = v[*pv.ParameterValue]
+					}
 				}
 			}
 		}
