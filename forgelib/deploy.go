@@ -20,6 +20,7 @@ type DeployOut struct {
 
 // Deploy will create or update the stack (depending on its current state)
 func (s *Stack) Deploy() (output DeployOut, err error) {
+
 	var validateConfig cloudformation.ValidateTemplateInput
 
 	if s.TemplateUrl != "" {

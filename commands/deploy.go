@@ -91,21 +91,12 @@ var deployCmd = &cobra.Command{
 			}
 		}
 
-		// Populate Stack ID
-		// Deliberately ignore errors here, as the stack might not exist yet
-		stack.GetStackInfo()
-
-		after, err := stack.GetLastEventTime()
-		if err != nil {
-			// default to epoch as the time to look for events from
-			epoch := time.Unix(0, 0)
-			after = &epoch
-		}
-
 		output, err := stack.Deploy()
 		if err != nil {
 			log.Fatal(err, output)
 		}
+
+		after := stack.LastUpdatedTime
 
 		if t := "No updates are to be performed."; output.Message == t {
 			fmt.Println(t)

@@ -1,6 +1,9 @@
 package forgelib
 
-import "github.com/aws/aws-sdk-go/service/cloudformation"
+import (
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"time"
+)
 
 // Stack represents the attributes of a stack deployment, including the AWS
 // parameters, and local resources which represent what needs to be deployed
@@ -9,6 +12,7 @@ type Stack struct {
 	ParameterOverrides    map[string]string
 	ProjectManifest       string
 	CfnRoleName           string
+	LastUpdatedTime       *time.Time
 	StackID               string
 	StackInfo             *cloudformation.Stack
 	StackName             string
@@ -41,5 +45,6 @@ func (s *Stack) GetStackInfo() (err error) {
 	if s.StackID == "" {
 		s.StackID = *s.StackInfo.StackId
 	}
+	s.LastUpdatedTime = s.StackInfo.LastUpdatedTime
 	return
 }
