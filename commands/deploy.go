@@ -98,6 +98,11 @@ var deployCmd = &cobra.Command{
 
 		after := stack.LastUpdatedTime
 
+		if after == nil {
+			epoch := time.Unix(0, 0)
+			after = &epoch
+		}
+
 		if t := "No updates are to be performed."; output.Message == t {
 			fmt.Println(t)
 			return
