@@ -36,6 +36,11 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 		return output, errors.Wrap(err, "Failed to Validate Template")
 	}
 
+	// CAPABILITY_AUTO_EXPAND is not discovered during validation so add it here.  These lines may
+	// be removed if validate-template is able to discover this capability requirement in the future.
+	capabilityCapabilityAutoExpand := cloudformation.CapabilityCapabilityAutoExpand
+	validationResult.Capabilities = append(validationResult.Capabilities, &capabilityCapabilityAutoExpand)
+
 	var inputParams []*cloudformation.Parameter
 	parsedParameters := []*cloudformation.Parameter{}
 	if len(s.ParameterBodies) != 0 {
