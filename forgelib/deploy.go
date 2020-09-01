@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ghodss/yaml"
+	//	"github.com/ghodss/yaml"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -145,24 +145,24 @@ TEMPLATE_PARAMETERS:
 		roleARN = &roleARNString
 	}
 
-	var inputStackPolicy *string
-	if s.StackPolicyBody != "" {
-		jsonStackPolicy, err := yaml.YAMLToJSON([]byte(s.StackPolicyBody))
-		if err != nil {
-			return output, errors.Wrap(err, "Unable to convert template policy from YAML to JSON")
-		}
-		jsonStackPolicyString := string(jsonStackPolicy)
-		inputStackPolicy = &jsonStackPolicyString
-	}
+	//var inputStackPolicy *string
+	//if s.StackPolicyBody != "" {
+	//	jsonStackPolicy, err := yaml.YAMLToJSON([]byte(s.StackPolicyBody))
+	//	if err != nil {
+	//		return output, errors.Wrap(err, "Unable to convert template policy from YAML to JSON")
+	//	}
+	//	jsonStackPolicyString := string(jsonStackPolicy)
+	//	inputStackPolicy = &jsonStackPolicyString
+	//}
 
 	createConfig := cloudformation.CreateStackInput{
-		StackName:                   aws.String(s.StackName),
-		OnFailure:                   aws.String("DELETE"),
-		Capabilities:                validationResult.Capabilities,
-		Tags:                        tags,
-		Parameters:                  inputParams,
-		RoleARN:                     roleARN,
-		StackPolicyBody:             inputStackPolicy,
+		StackName:    aws.String(s.StackName),
+		OnFailure:    aws.String("DELETE"),
+		Capabilities: validationResult.Capabilities,
+		Tags:         tags,
+		Parameters:   inputParams,
+		RoleARN:      roleARN,
+		//StackPolicyBody:             inputStackPolicy,
 		EnableTerminationProtection: aws.Bool(s.TerminationProtection),
 	}
 
@@ -196,13 +196,16 @@ TEMPLATE_PARAMETERS:
 			}
 		}
 
+		// If stack pnput --stack-policy-recurse and inputStackPolicy
+		//	Create a function that takes a stack policy and stack template
+
 		updateConfig := cloudformation.UpdateStackInput{
-			StackName:       aws.String(s.StackID),
-			Capabilities:    validationResult.Capabilities,
-			Tags:            tags,
-			Parameters:      inputParams,
-			RoleARN:         roleARN,
-			StackPolicyBody: inputStackPolicy,
+			StackName:    aws.String(s.StackID),
+			Capabilities: validationResult.Capabilities,
+			Tags:         tags,
+			Parameters:   inputParams,
+			RoleARN:      roleARN,
+			//StackPolicyBody: inputStackPolicy,
 		}
 
 		if s.TemplateUrl != "" {
