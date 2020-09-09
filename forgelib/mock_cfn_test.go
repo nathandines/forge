@@ -10,16 +10,17 @@ import (
 )
 
 type mockCfn struct {
-	capabilityIam      bool
-	failCreate         bool
-	failDescribe       bool
-	failValidate       bool
-	newStackID         string
-	noUpdates          bool
-	requiredParameters []string
-	stackEventsOutput  cloudformation.DescribeStackEventsOutput
-	stackPolicies      *map[string]string
-	stacks             *[]cloudformation.Stack
+	capabilityIam        bool
+	failCreate           bool
+	failDescribe         bool
+	failValidate         bool
+	newStackID           string
+	noUpdates            bool
+	requiredParameters   []string
+	stackEventsOutput    cloudformation.DescribeStackEventsOutput
+	stackResourcesOutput map[string]cloudformation.DescribeStackResourcesOutput
+	stackPolicies        *map[string]string
+	stacks               *[]cloudformation.Stack
 	cloudformationiface.CloudFormationAPI
 }
 
@@ -253,7 +254,14 @@ func (m mockCfn) DescribeStackEventsPages(input *cloudformation.DescribeStackEve
 }
 
 func (m mockCfn) DescribeStackResources(input *cloudformation.DescribeStackResourcesInput) (*cloudformation.DescribeStackResourcesOutput, error) {
-	output := cloudformation.DescribeStackResourcesOutput{}
+
+	output := m.stackResourcesOutput[*input.StackName]
+	return &output, nil
+}
+
+func (m mockCfn) SetStackPolicy(input *cloudformation.SetStackPolicyInput) (*cloudformation.SetStackPolicyOutput, error) {
+
+	output := cloudformation.SetStackPolicyOutput{}
 	return &output, nil
 }
 

@@ -30,6 +30,7 @@ state of the stack deployment.
 - Acceptance of "No updates to be performed." as a non-erroneous state
 - Environment Variable Substitution in Parameter and Tag files
 - YAML and JSON formatted stack policies
+- Apply stack policies to nested stacks
 - Deploy using an assumed IAM role (often used to deploy stacks to other
   accounts)
   - Includes support for MFA specified on the command line or in `~/.aws/config`

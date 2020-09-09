@@ -3,12 +3,12 @@ package forgelib
 import (
 	"encoding/json"
 	"fmt"
-
-	//	"github.com/ghodss/yaml"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/minio/minio/pkg/wildcard"
 	"github.com/pkg/errors"
 )
 
@@ -16,6 +16,86 @@ import (
 // the Deploy function
 type DeployOut struct {
 	Message string
+}
+
+type PolicyDocument struct {
+	Statement []StatementEntry
+}
+
+type StatementEntry struct {
+	Effect       string
+	ActionString string `json:"Action"`
+	Action       []string
+	Principal    string
+	Resource     string
+	Condition    map[string]map[string][]string
+}
+
+func recursiveSetStackPolicy(stackPolicyBody *string, stackName *string) error {
+	stackResourcesInput := cloudformation.DescribeStackResourcesInput{
+		StackName: stackName,
+	}
+	stackResources, err := cfnClient.DescribeStackResources(&stackResourcesInput)
+	if err != nil {
+		return err
+	}
+
+	var stackResouceLogicalNames []*string
+	var stackResourcNestedStacks []*string
+
+	for _, stackResource := range stackResources.StackResources {
+		if *stackResource.ResourceType == "AWS::CloudFormation::Stack" {
+			stackResourcNestedStacks = append(stackResourcNestedStacks, stackResource.PhysicalResourceId)
+		}
+		stackResouceLogicalNames = append(stackResouceLogicalNames, stackResource.LogicalResourceId)
+	}
+
+	var stackPolicy PolicyDocument
+	json.Unmarshal([]byte(*stackPolicyBody), &stackPolicy)
+
+	// filter stack policy. remove logical ids not included in this stack
+	var filteredStackPolicy PolicyDocument
+	for _, statementEntry := range stackPolicy.Statement {
+		logicalNameSplit := strings.Split(statementEntry.Resource, "/")
+		logicalNamePattern := logicalNameSplit[len(logicalNameSplit)-1]
+		for _, stackResouceLogicalName := range stackResouceLogicalNames {
+			fmt.Printf("%v =? %v", logicalNamePattern, *stackResouceLogicalName)
+			if wildcard.MatchSimple(logicalNamePattern, *stackResouceLogicalName) {
+				if statementEntry.ActionString != "" {
+					statementEntry.Action = []string{statementEntry.ActionString}
+					statementEntry.ActionString = ""
+				}
+
+				filteredStackPolicy.Statement = append(filteredStackPolicy.Statement, statementEntry)
+				break
+			}
+		}
+	}
+	fmt.Println(filteredStackPolicy)
+
+	jsonStackPolicy, err := json.Marshal(filteredStackPolicy)
+	if err != nil {
+		return err
+	}
+	jsonStackPolicyString := string(jsonStackPolicy)
+	fmt.Println(jsonStackPolicyString)
+
+	setStackPolicyInput := cloudformation.SetStackPolicyInput{
+		StackName:       stackName,
+		StackPolicyBody: &jsonStackPolicyString,
+	}
+
+	cfnClient.SetStackPolicy(&setStackPolicyInput)
+
+	// For each nested stack recursiveSetStackPolicy()
+	for _, stackResourcNestedStack := range stackResourcNestedStacks {
+		err = recursiveSetStackPolicy(stackPolicyBody, stackResourcNestedStack)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+
 }
 
 // Deploy will create or update the stack (depending on its current state)

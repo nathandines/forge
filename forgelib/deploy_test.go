@@ -68,6 +68,63 @@ func genFakeStackData(realStack cloudformation.Stack) fakeStack {
 	return output
 }
 
+type resourceValues struct {
+	LogicalResourceId string
+	ResourceType      string
+}
+
+func TestRecursiveSetStackPolicy(t *testing.T) {
+	cases := []struct {
+		stackPolicyBody string
+		stackResources  map[string][]resourceValues
+		stackName       string
+		fail            bool
+	}{
+		{
+			`{"Statement":[{"Effect":"Allow","Action":["Update:*"],"Principal":"*","Resource":"*"},{"Effect":"Deny","Action":"Update:*","Principal":"*","Resource":"LogicalResourceId/ProductionDatabase"}]}`,
+			map[string][]resourceValues{"test-stack": []resourceValues{
+				{
+					LogicalResourceId: "id0",
+					ResourceType:      "asdf",
+				},
+			}},
+			"test-stack",
+			false,
+		},
+	}
+
+	for _, c := range cases {
+
+		stackResourcesOutput := make(map[string]cloudformation.DescribeStackResourcesOutput)
+
+		for stackName, stackResources := range c.stackResources {
+
+			var cfStackResources []*cloudformation.StackResource
+			for _, stackResource := range stackResources {
+				cfStackResource := cloudformation.StackResource{
+					LogicalResourceId: &stackResource.LogicalResourceId,
+					ResourceType:      &stackResource.ResourceType,
+				}
+				cfStackResources = append(cfStackResources, &cfStackResource)
+			}
+
+			stackResourcesOutput[stackName] = cloudformation.DescribeStackResourcesOutput{
+				StackResources: cfStackResources,
+			}
+
+		}
+
+		cfnClient = mockCfn{
+			stackResourcesOutput: stackResourcesOutput,
+		}
+
+		err := recursiveSetStackPolicy(&c.stackPolicyBody, &c.stackName)
+		if err != nil && c.fail == false {
+			t.Error(err)
+		}
+	}
+}
+
 func TestDeploy(t *testing.T) {
 	cases := []struct {
 		accountID             string
@@ -945,15 +1002,16 @@ func TestDeploy(t *testing.T) {
 			theseStackPolicies = map[string]string{}
 		}
 		cfnClient = mockCfn{
-			capabilityIam:      c.capabilityIam,
-			failCreate:         c.failCreate,
-			failDescribe:       c.failDescribe,
-			failValidate:       c.failValidate,
-			newStackID:         c.newStackID,
-			noUpdates:          c.noUpdates,
-			requiredParameters: c.requiredParameters,
-			stacks:             &theseStacks,
-			stackPolicies:      &theseStackPolicies,
+			capabilityIam:        c.capabilityIam,
+			failCreate:           c.failCreate,
+			failDescribe:         c.failDescribe,
+			failValidate:         c.failValidate,
+			newStackID:           c.newStackID,
+			noUpdates:            c.noUpdates,
+			requiredParameters:   c.requiredParameters,
+			stacks:               &theseStacks,
+			stackResourcesOutput: map[string]cloudformation.DescribeStackResourcesOutput{"-": cloudformation.DescribeStackResourcesOutput{}},
+			stackPolicies:        &theseStackPolicies,
 		}
 		stsClient = mockSTS{accountID: c.accountID}
 
