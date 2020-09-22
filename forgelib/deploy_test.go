@@ -142,6 +142,7 @@ func TestRecursiveSetStackPolicy(t *testing.T) {
 
 func TestDeploy(t *testing.T) {
 	cases := []struct {
+		testName              string
 		accountID             string
 		capabilityIam         bool
 		cfnRoleName           string
@@ -163,8 +164,8 @@ func TestDeploy(t *testing.T) {
 		tagInput              string
 		terminationProtection bool
 	}{
-		// Create new stack with previously used name
 		{
+			testName:   "Create new stack with previously used name",
 			newStackID: "test-stack/id2",
 			stacks: []cloudformation.Stack{
 				{
@@ -196,8 +197,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Create new stack where one did not previously exist
 		{
+			testName:   "Create new stack where one did not previously exist",
 			newStackID: "test-stack/id0",
 			stacks:     []cloudformation.Stack{},
 			expectStacks: []cloudformation.Stack{
@@ -208,8 +209,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack where one was previously created
 		{
+			testName: "Update stack where one was previously created",
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -238,6 +239,7 @@ func TestDeploy(t *testing.T) {
 		// Test deployment against a non-deployable state
 		// This covers what would have otherwise been failUpdate
 		{
+			testName: "deployment against a non-deployable state",
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -264,8 +266,8 @@ func TestDeploy(t *testing.T) {
 			},
 			expectFailure: true,
 		},
-		// Test successful behaviour when no updates are to be performed
 		{
+			testName: "Test successful behaviour when no updates are to be performed",
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -293,8 +295,8 @@ func TestDeploy(t *testing.T) {
 			noUpdates:    true,
 			expectOutput: DeployOut{Message: "No updates are to be performed."},
 		},
-		// Require CAPABILITY_IAM Stack Update
 		{
+			testName: "Require CAPABILITY_IAM Stack Update",
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -321,8 +323,8 @@ func TestDeploy(t *testing.T) {
 			},
 			capabilityIam: true,
 		},
-		// Require CAPABILITY_IAM Stack Create
 		{
+			testName:   "Require CAPABILITY_IAM Stack Create",
 			newStackID: "test-stack/id0",
 			stacks:     []cloudformation.Stack{},
 			expectStacks: []cloudformation.Stack{
@@ -334,29 +336,29 @@ func TestDeploy(t *testing.T) {
 			},
 			capabilityIam: true,
 		},
-		// CreateStack error
 		{
+			testName:      "CreateStack error",
 			stacks:        []cloudformation.Stack{},
 			expectStacks:  []cloudformation.Stack{},
 			expectFailure: true,
 			failCreate:    true,
 		},
-		// DescribeStacks error
 		{
+			testName:      "DescribeStacks error",
 			stacks:        []cloudformation.Stack{},
 			expectStacks:  []cloudformation.Stack{},
 			expectFailure: true,
 			failDescribe:  true,
 		},
-		// ValidateTemplate error
 		{
+			testName:      "ValidateTemplate error",
 			stacks:        []cloudformation.Stack{},
 			expectStacks:  []cloudformation.Stack{},
 			expectFailure: true,
 			failValidate:  true,
 		},
-		// Create stack with tags
 		{
+			testName:   "Create stack with tags",
 			newStackID: "test-stack/id0",
 			tagInput:   `{"TestKey1":"TestValue1","TestKey2":"TestValue2"}`,
 			stacks:     []cloudformation.Stack{},
@@ -372,8 +374,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack, adding tags
 		{
+			testName: "Update stack, adding tags",
 			tagInput: `{"TestKey1":"TestValue1","TestKey2":"TestValue2"}`,
 			stacks: []cloudformation.Stack{
 				{
@@ -394,8 +396,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack without tags file, don't remove tags
 		{
+			testName: "Update stack without tags file, don't remove tags",
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -419,8 +421,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack, remove tags
 		{
+			testName: "Update stack, remove tags",
 			tagInput: "{}",
 			stacks: []cloudformation.Stack{
 				{
@@ -441,8 +443,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Create stack with parameters
 		{
+			testName:           "Create stack with parameters",
 			newStackID:         "test-stack/id0",
 			parameterInput:     []string{`{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`},
 			requiredParameters: []string{"TestParam1", "TestParam2"},
@@ -459,8 +461,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack, adding parameters
 		{
+			testName:           "Update stack, adding parameters",
 			parameterInput:     []string{`{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`},
 			requiredParameters: []string{"TestParam1", "TestParam2"},
 			stacks: []cloudformation.Stack{
@@ -482,8 +484,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack with subset of parameters
 		{
+			testName:           "Update stack with subset of parameters",
 			parameterInput:     []string{`{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`},
 			requiredParameters: []string{"TestParam1"},
 			stacks: []cloudformation.Stack{
@@ -508,8 +510,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Create stack with subset of parameters
 		{
+			testName:           "Create stack with subset of parameters",
 			newStackID:         "test-stack/id0",
 			parameterInput:     []string{`{"TestParam1":"TestValue1","TestParam2":"TestValue2"}`},
 			requiredParameters: []string{"TestParam1"},
@@ -525,8 +527,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Create stack, missing required parameters
 		{
+			testName:           "Create stack, missing required parameters",
 			newStackID:         "test-stack/id0",
 			parameterInput:     []string{`{"TestParam2":"TestValue2"}`},
 			requiredParameters: []string{"TestParam1"},
@@ -534,8 +536,8 @@ func TestDeploy(t *testing.T) {
 			expectStacks:       []cloudformation.Stack{},
 			expectFailure:      true,
 		},
-		// Update stack, missing required parameters
 		{
+			testName:           "Update stack, missing required parameters",
 			parameterInput:     []string{`{"TestParam2":"TestValue2"}`},
 			requiredParameters: []string{"TestParam1"},
 			stacks: []cloudformation.Stack{
@@ -554,8 +556,8 @@ func TestDeploy(t *testing.T) {
 			},
 			expectFailure: true,
 		},
-		// Create stack, using role
 		{
+			testName:    "Create stack, using role",
 			cfnRoleName: "role-name",
 			accountID:   "111111111111",
 			newStackID:  "test-stack/id0",
@@ -569,8 +571,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack, using role
 		{
+			testName:    "Update stack, using role",
 			cfnRoleName: "role-name",
 			accountID:   "111111111111",
 			stacks: []cloudformation.Stack{
@@ -589,8 +591,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Create; JSON Stack Policy
 		{
+			testName:   "Create; JSON Stack Policy",
 			newStackID: "test-stack/id0",
 			stackPolicyInput: `{
 				"Statement":
@@ -613,8 +615,8 @@ func TestDeploy(t *testing.T) {
 			},
 			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
 		},
-		// Update; JSON Stack Policy
 		{
+			testName: "Update; JSON Stack Policy",
 			stackPolicyInput: `{
 				"Statement":
 				[
@@ -652,8 +654,8 @@ func TestDeploy(t *testing.T) {
 			},
 			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
 		},
-		// Create; YAML Stack Policy
 		{
+			testName:   "Create; YAML Stack Policy",
 			newStackID: "test-stack/id0",
 			stackPolicyInput: `---
                 Statement:
@@ -671,8 +673,8 @@ func TestDeploy(t *testing.T) {
 			},
 			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
 		},
-		// Update; YAML Stack Policy
 		{
+			testName: "Update; YAML Stack Policy",
 			stackPolicyInput: `---
                 Statement:
                 - Effect: Allow
@@ -705,8 +707,8 @@ func TestDeploy(t *testing.T) {
 			},
 			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
 		},
-		// Update; Existing JSON Stack Policy without update
 		{
+			testName:         "Update; Existing JSON Stack Policy without update",
 			stackPolicyInput: "",
 			stacks: []cloudformation.Stack{
 				{
@@ -737,8 +739,8 @@ func TestDeploy(t *testing.T) {
 			},
 			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
 		},
-		// Create new stack with termination protection
 		{
+			testName:              "Create new stack with termination protection",
 			terminationProtection: true,
 			newStackID:            "test-stack/id0",
 			stacks:                []cloudformation.Stack{},
@@ -751,8 +753,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack and turn on termination protection
 		{
+			testName:              "Update stack and turn on termination protection",
 			terminationProtection: true,
 			stacks: []cloudformation.Stack{
 				{
@@ -781,8 +783,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack and turn on termination protection when no updates to perform
 		{
+			testName:              "Update stack and turn on termination protection when no updates to perform",
 			noUpdates:             true,
 			expectOutput:          DeployOut{Message: "No updates are to be performed."},
 			terminationProtection: true,
@@ -813,8 +815,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack and leave termination protection alone
 		{
+			testName: "Update stack and leave termination protection alone",
 			stacks: []cloudformation.Stack{
 				{
 					StackName:   aws.String("test-stack"),
@@ -842,8 +844,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack and leave termination protection alone (v. 2)
 		{
+			testName:              "Update stack and leave termination protection alone (v. 2)",
 			terminationProtection: false,
 			stacks: []cloudformation.Stack{
 				{
@@ -872,8 +874,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Create stack with multiple parameter files
 		{
+			testName:   "Create stack with multiple parameter files",
 			newStackID: "test-stack/id0",
 			parameterInput: []string{
 				`{"One":"Foo","Two":"Foo"}`,
@@ -893,8 +895,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack with multiple parameter files
 		{
+			testName:   "Update stack with multiple parameter files",
 			newStackID: "test-stack/id0",
 			parameterInput: []string{
 				`{"One":"Foo","Two":"Foo"}`,
@@ -920,8 +922,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Create stack with parameter overrides
 		{
+			testName:           "Create stack with parameter overrides",
 			newStackID:         "test-stack/id0",
 			parameterInput:     []string{`{"One":"Foo","Two":"Foo"}`},
 			parameterOverrides: map[string]string{"Two": "Bar"},
@@ -939,8 +941,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack with parameter overrides
 		{
+			testName:           "Update stack with parameter overrides",
 			newStackID:         "test-stack/id0",
 			parameterInput:     []string{`{"One":"Foo","Two":"Foo"}`},
 			parameterOverrides: map[string]string{"Two": "Bar"},
@@ -964,8 +966,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Create stack with only parameter overrides
 		{
+			testName:           "Create stack with only parameter overrides",
 			newStackID:         "test-stack/id0",
 			parameterOverrides: map[string]string{"Two": "Bar"},
 			requiredParameters: []string{"Two"},
@@ -981,8 +983,8 @@ func TestDeploy(t *testing.T) {
 				},
 			},
 		},
-		// Update stack with parameter overrides
 		{
+			testName:           "Update stack with parameter overrides",
 			newStackID:         "test-stack/id0",
 			parameterOverrides: map[string]string{"Two": "Bar"},
 			requiredParameters: []string{"Two"},
@@ -1011,68 +1013,70 @@ func TestDeploy(t *testing.T) {
 	oldSTSClient := stsClient
 	defer func() { stsClient = oldSTSClient }()
 	for i, c := range cases {
-		theseStacks := cases[i].stacks
-		theseStackPolicies := c.stackPolicies
-		if theseStackPolicies == nil {
-			theseStackPolicies = map[string]string{}
-		}
-		stackResource := cloudformation.StackResource{
-			LogicalResourceId: aws.String("ProductionDatabase"),
-			ResourceType:      aws.String("AWS::RDS::DBInstance"),
-		}
-
-		cfnClient = mockCfn{
-			capabilityIam:        c.capabilityIam,
-			failCreate:           c.failCreate,
-			failDescribe:         c.failDescribe,
-			failValidate:         c.failValidate,
-			newStackID:           c.newStackID,
-			noUpdates:            c.noUpdates,
-			requiredParameters:   c.requiredParameters,
-			stacks:               &theseStacks,
-			stackResourcesOutput: map[string]cloudformation.DescribeStackResourcesOutput{"test-stack/id1": cloudformation.DescribeStackResourcesOutput{StackResources: []*cloudformation.StackResource{&stackResource}}},
-			stackPolicies:        &theseStackPolicies,
-		}
-		stsClient = mockSTS{accountID: c.accountID}
-
-		thisStack := Stack{
-			ParameterBodies:       c.parameterInput,
-			ParameterOverrides:    c.parameterOverrides,
-			StackName:             "test-stack",
-			TagsBody:              c.tagInput,
-			TemplateBody:          `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"},"ProductionDatabase":{"Type":"AWS::RDS::DBInstance"}}}`,
-			CfnRoleName:           c.cfnRoleName,
-			StackPolicyBody:       c.stackPolicyInput,
-			TerminationProtection: c.terminationProtection,
-		}
-
-		output, err := thisStack.Deploy()
-		switch {
-		case err == nil && c.expectFailure:
-			t.Errorf("%d, expected error, got success", i)
-		case err != nil && !c.expectFailure:
-			t.Fatalf("%d, unexpected error, %v", i, err)
-		}
-
-		if e, g := c.expectOutput, output; e != g {
-			t.Errorf("%d, expected %+v info, got %+v", i, e, g)
-		}
-
-		if thisStack.StackID == "" && !c.expectFailure {
-			t.Errorf("%d, expected populated Stack ID on stack, found none", i)
-		}
-
-		for j := 0; j < len(c.expectStacks); j++ {
-			e := genFakeStackData(c.expectStacks[j])
-			g := genFakeStackData(theseStacks[j])
-			if !reflect.DeepEqual(e, g) {
-				t.Errorf("%d, expected %+v, got %+v", i, e, g)
+		t.Run(c.testName, func(t *testing.T) {
+			theseStacks := cases[i].stacks
+			theseStackPolicies := c.stackPolicies
+			if theseStackPolicies == nil {
+				theseStackPolicies = map[string]string{}
 			}
-		}
+			stackResource := cloudformation.StackResource{
+				LogicalResourceId: aws.String("ProductionDatabase"),
+				ResourceType:      aws.String("AWS::RDS::DBInstance"),
+			}
 
-		if e := c.expectStackPolicy; e != "" {
-			g := theseStackPolicies[thisStack.StackID]
-			assert.JSONEq(t, e, g)
-		}
+			cfnClient = mockCfn{
+				capabilityIam:        c.capabilityIam,
+				failCreate:           c.failCreate,
+				failDescribe:         c.failDescribe,
+				failValidate:         c.failValidate,
+				newStackID:           c.newStackID,
+				noUpdates:            c.noUpdates,
+				requiredParameters:   c.requiredParameters,
+				stacks:               &theseStacks,
+				stackResourcesOutput: map[string]cloudformation.DescribeStackResourcesOutput{"test-stack/id1": cloudformation.DescribeStackResourcesOutput{StackResources: []*cloudformation.StackResource{&stackResource}}},
+				stackPolicies:        &theseStackPolicies,
+			}
+			stsClient = mockSTS{accountID: c.accountID}
+
+			thisStack := Stack{
+				ParameterBodies:       c.parameterInput,
+				ParameterOverrides:    c.parameterOverrides,
+				StackName:             "test-stack",
+				TagsBody:              c.tagInput,
+				TemplateBody:          `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"},"ProductionDatabase":{"Type":"AWS::RDS::DBInstance"}}}`,
+				CfnRoleName:           c.cfnRoleName,
+				StackPolicyBody:       c.stackPolicyInput,
+				TerminationProtection: c.terminationProtection,
+			}
+
+			output, err := thisStack.Deploy()
+			switch {
+			case err == nil && c.expectFailure:
+				t.Errorf("%d, expected error, got success", i)
+			case err != nil && !c.expectFailure:
+				t.Fatalf("%d, unexpected error, %v", i, err)
+			}
+
+			if e, g := c.expectOutput, output; e != g {
+				t.Errorf("%d, expected %+v info, got %+v", i, e, g)
+			}
+
+			if thisStack.StackID == "" && !c.expectFailure {
+				t.Errorf("%d, expected populated Stack ID on stack, found none", i)
+			}
+
+			for j := 0; j < len(c.expectStacks); j++ {
+				e := genFakeStackData(c.expectStacks[j])
+				g := genFakeStackData(theseStacks[j])
+				if !reflect.DeepEqual(e, g) {
+					t.Errorf("%d, expected %+v, got %+v", i, e, g)
+				}
+			}
+
+			if e := c.expectStackPolicy; e != "" {
+				g := theseStackPolicies[thisStack.StackID]
+				assert.JSONEq(t, e, g)
+			}
+		})
 	}
 }
