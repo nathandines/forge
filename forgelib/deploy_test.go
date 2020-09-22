@@ -655,59 +655,6 @@ func TestDeploy(t *testing.T) {
 			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
 		},
 		{
-			testName:   "Create; YAML Stack Policy",
-			newStackID: "test-stack/id0",
-			stackPolicyInput: `---
-                Statement:
-                - Effect: Allow
-                  Action: Update:*
-                  Principal: '*'
-                  NotResource: LogicalResourceId/ProductionDatabase`,
-			stacks: []cloudformation.Stack{},
-			expectStacks: []cloudformation.Stack{
-				{
-					StackName:   aws.String("test-stack"),
-					StackId:     aws.String("test-stack/id0"),
-					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
-				},
-			},
-			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
-		},
-		{
-			testName: "Update; YAML Stack Policy",
-			stackPolicyInput: `---
-                Statement:
-                - Effect: Allow
-                  Action: Update:*
-                  Principal: '*'
-                  NotResource: LogicalResourceId/ProductionDatabase`,
-			stacks: []cloudformation.Stack{
-				{
-					StackName:   aws.String("test-stack"),
-					StackId:     aws.String("test-stack/id0"),
-					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
-				},
-				{
-					StackName:   aws.String("test-stack"),
-					StackId:     aws.String("test-stack/id1"),
-					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
-				},
-			},
-			expectStacks: []cloudformation.Stack{
-				{
-					StackName:   aws.String("test-stack"),
-					StackId:     aws.String("test-stack/id0"),
-					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
-				},
-				{
-					StackName:   aws.String("test-stack"),
-					StackId:     aws.String("test-stack/id1"),
-					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
-				},
-			},
-			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
-		},
-		{
 			testName:         "Update; Existing JSON Stack Policy without update",
 			stackPolicyInput: "",
 			stacks: []cloudformation.Stack{
