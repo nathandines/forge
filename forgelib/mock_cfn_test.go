@@ -262,6 +262,9 @@ func (m mockCfn) DescribeStackResources(input *cloudformation.DescribeStackResou
 func (m mockCfn) SetStackPolicy(input *cloudformation.SetStackPolicyInput) (*cloudformation.SetStackPolicyOutput, error) {
 
 	output := cloudformation.SetStackPolicyOutput{}
+	if input.StackPolicyBody != nil {
+		(*m.stackPolicies)[*input.StackName] = *input.StackPolicyBody
+	}
 	return &output, nil
 }
 

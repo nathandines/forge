@@ -23,12 +23,13 @@ type PolicyDocument struct {
 }
 
 type StatementEntry struct {
-	Effect       string
-	ActionString string `json:"Action"`
-	Action       []string
-	Principal    string
-	Resource     string
-	Condition    map[string]map[string][]string
+	Effect      string                         `json:",omitempty"`
+	Action      interface{}                    `json:",omitempty"` // May be string or []string
+	NotAction   string                         `json:",omitempty"`
+	Principal   string                         `json:",omitempty"`
+	Resource    string                         `json:",omitempty"`
+	NotResource string                         `json:",omitempty"`
+	Condition   map[string]map[string][]string `json:",omitempty"`
 }
 
 func recursiveSetStackPolicy(stackPolicyBody *string, stackName *string) error {
@@ -56,29 +57,26 @@ func recursiveSetStackPolicy(stackPolicyBody *string, stackName *string) error {
 	// filter stack policy. remove logical ids not included in this stack
 	var filteredStackPolicy PolicyDocument
 	for _, statementEntry := range stackPolicy.Statement {
-		logicalNameSplit := strings.Split(statementEntry.Resource, "/")
+		var logicalNameSplit []string
+		if statementEntry.Resource != "" {
+			logicalNameSplit = strings.Split(statementEntry.Resource, "/")
+		} else if statementEntry.NotResource != "" {
+			logicalNameSplit = strings.Split(statementEntry.NotResource, "/")
+		}
 		logicalNamePattern := logicalNameSplit[len(logicalNameSplit)-1]
 		for _, stackResouceLogicalName := range stackResouceLogicalNames {
-			fmt.Printf("%v =? %v", logicalNamePattern, *stackResouceLogicalName)
 			if wildcard.MatchSimple(logicalNamePattern, *stackResouceLogicalName) {
-				if statementEntry.ActionString != "" {
-					statementEntry.Action = []string{statementEntry.ActionString}
-					statementEntry.ActionString = ""
-				}
-
 				filteredStackPolicy.Statement = append(filteredStackPolicy.Statement, statementEntry)
 				break
 			}
 		}
 	}
-	fmt.Println(filteredStackPolicy)
 
 	jsonStackPolicy, err := json.Marshal(filteredStackPolicy)
 	if err != nil {
 		return err
 	}
 	jsonStackPolicyString := string(jsonStackPolicy)
-	fmt.Println(jsonStackPolicyString)
 
 	setStackPolicyInput := cloudformation.SetStackPolicyInput{
 		StackName:       stackName,
@@ -225,24 +223,13 @@ TEMPLATE_PARAMETERS:
 		roleARN = &roleARNString
 	}
 
-	//var inputStackPolicy *string
-	//if s.StackPolicyBody != "" {
-	//	jsonStackPolicy, err := yaml.YAMLToJSON([]byte(s.StackPolicyBody))
-	//	if err != nil {
-	//		return output, errors.Wrap(err, "Unable to convert template policy from YAML to JSON")
-	//	}
-	//	jsonStackPolicyString := string(jsonStackPolicy)
-	//	inputStackPolicy = &jsonStackPolicyString
-	//}
-
 	createConfig := cloudformation.CreateStackInput{
-		StackName:    aws.String(s.StackName),
-		OnFailure:    aws.String("DELETE"),
-		Capabilities: validationResult.Capabilities,
-		Tags:         tags,
-		Parameters:   inputParams,
-		RoleARN:      roleARN,
-		//StackPolicyBody:             inputStackPolicy,
+		StackName:                   aws.String(s.StackName),
+		OnFailure:                   aws.String("DELETE"),
+		Capabilities:                validationResult.Capabilities,
+		Tags:                        tags,
+		Parameters:                  inputParams,
+		RoleARN:                     roleARN,
 		EnableTerminationProtection: aws.Bool(s.TerminationProtection),
 	}
 
@@ -260,6 +247,7 @@ TEMPLATE_PARAMETERS:
 			return output, errors.Wrap(err, "Failed to Create Stack")
 		}
 		s.StackID = *createOut.StackId
+
 	} else {
 		// Only SET termination protection, do not remove
 		if s.StackInfo.EnableTerminationProtection != nil &&
@@ -276,8 +264,12 @@ TEMPLATE_PARAMETERS:
 			}
 		}
 
-		// If stack pnput --stack-policy-recurse and inputStackPolicy
-		//	Create a function that takes a stack policy and stack template
+		if s.StackPolicyBody != "" {
+			err = recursiveSetStackPolicy(&s.StackPolicyBody, &s.StackID)
+			if err != nil {
+				return output, errors.Wrap(err, "Failed to Set Stack Policy")
+			}
+		}
 
 		updateConfig := cloudformation.UpdateStackInput{
 			StackName:    aws.String(s.StackID),
@@ -285,7 +277,6 @@ TEMPLATE_PARAMETERS:
 			Tags:         tags,
 			Parameters:   inputParams,
 			RoleARN:      roleARN,
-			//StackPolicyBody: inputStackPolicy,
 		}
 
 		if s.TemplateUrl != "" {

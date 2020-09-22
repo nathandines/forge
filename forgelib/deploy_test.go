@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/stretchr/testify/assert"
 )
 
 type fakeStack struct {
@@ -84,8 +85,19 @@ func TestRecursiveSetStackPolicy(t *testing.T) {
 			`{"Statement":[{"Effect":"Allow","Action":["Update:*"],"Principal":"*","Resource":"*"},{"Effect":"Deny","Action":"Update:*","Principal":"*","Resource":"LogicalResourceId/ProductionDatabase"}]}`,
 			map[string][]resourceValues{"test-stack": []resourceValues{
 				{
-					LogicalResourceId: "id0",
-					ResourceType:      "asdf",
+					LogicalResourceId: "ProductionDatabase",
+					ResourceType:      "AWS::RDS::DBInstance",
+				},
+			}},
+			"test-stack",
+			false,
+		},
+		{
+			`{"Statement":[{"Effect":"Allow","Action":["Update:*"],"Principal":"*","Resource":"*"},{"Effect":"Deny","Action":"Update:*","Principal":"*","NotResource":"LogicalResourceId/ProductionDatabase"}]}`,
+			map[string][]resourceValues{"test-stack": []resourceValues{
+				{
+					LogicalResourceId: "ProductionDatabase",
+					ResourceType:      "AWS::RDS::DBInstance",
 				},
 			}},
 			"test-stack",
@@ -114,8 +126,11 @@ func TestRecursiveSetStackPolicy(t *testing.T) {
 
 		}
 
+		theseStackPolicies := map[string]string{}
 		cfnClient = mockCfn{
 			stackResourcesOutput: stackResourcesOutput,
+			stackPolicies:        &theseStackPolicies,
+			newStackID:           c.stackName,
 		}
 
 		err := recursiveSetStackPolicy(&c.stackPolicyBody, &c.stackName)
@@ -1001,6 +1016,11 @@ func TestDeploy(t *testing.T) {
 		if theseStackPolicies == nil {
 			theseStackPolicies = map[string]string{}
 		}
+		stackResource := cloudformation.StackResource{
+			LogicalResourceId: aws.String("ProductionDatabase"),
+			ResourceType:      aws.String("AWS::RDS::DBInstance"),
+		}
+
 		cfnClient = mockCfn{
 			capabilityIam:        c.capabilityIam,
 			failCreate:           c.failCreate,
@@ -1010,7 +1030,7 @@ func TestDeploy(t *testing.T) {
 			noUpdates:            c.noUpdates,
 			requiredParameters:   c.requiredParameters,
 			stacks:               &theseStacks,
-			stackResourcesOutput: map[string]cloudformation.DescribeStackResourcesOutput{"-": cloudformation.DescribeStackResourcesOutput{}},
+			stackResourcesOutput: map[string]cloudformation.DescribeStackResourcesOutput{"test-stack/id1": cloudformation.DescribeStackResourcesOutput{StackResources: []*cloudformation.StackResource{&stackResource}}},
 			stackPolicies:        &theseStackPolicies,
 		}
 		stsClient = mockSTS{accountID: c.accountID}
@@ -1020,7 +1040,7 @@ func TestDeploy(t *testing.T) {
 			ParameterOverrides:    c.parameterOverrides,
 			StackName:             "test-stack",
 			TagsBody:              c.tagInput,
-			TemplateBody:          `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"}}}`,
+			TemplateBody:          `{"Resources":{"SNS":{"Type":"AWS::SNS::Topic"},"ProductionDatabase":{"Type":"AWS::RDS::DBInstance"}}}`,
 			CfnRoleName:           c.cfnRoleName,
 			StackPolicyBody:       c.stackPolicyInput,
 			TerminationProtection: c.terminationProtection,
@@ -1051,13 +1071,8 @@ func TestDeploy(t *testing.T) {
 		}
 
 		if e := c.expectStackPolicy; e != "" {
-			if g, ok := theseStackPolicies[thisStack.StackID]; ok {
-				if e != g {
-					t.Errorf("%d, expected stack policy \"%s\", got \"%s\"", i, e, g)
-				}
-			} else {
-				t.Errorf("%d, expected stack policy \"%s\", got none", i, e)
-			}
+			g := theseStackPolicies[thisStack.StackID]
+			assert.JSONEq(t, e, g)
 		}
 	}
 }
