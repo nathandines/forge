@@ -91,9 +91,12 @@ var deployCmd = &cobra.Command{
 			}
 		}
 
-		output, _, err := stack.Deploy()
+		output, postActions, err := stack.Deploy()
 		if err != nil {
 			log.Fatal(err, output)
+		}
+		for _, postAction := range postActions {
+			defer postAction()
 		}
 
 		after := stack.LastUpdatedTime
@@ -187,7 +190,7 @@ func init() {
 		&stackPolicyFile,
 		"stack-policy-file",
 		"",
-		"Path to the file which contains the stack policy for this stack",
+		"Path to the file which contains the stack policy for this stack and all nested stack",
 	)
 	deployCmd.MarkFlagFilename("stack-policy-file")
 
