@@ -161,6 +161,7 @@ func TestDeploy(t *testing.T) {
 		stacks                []cloudformation.Stack
 		stackPolicies         map[string]string
 		stackPolicyInput      string
+		stackResources        map[string][]resourceValues
 		tagInput              string
 		terminationProtection bool
 	}{
@@ -613,6 +614,14 @@ func TestDeploy(t *testing.T) {
 					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 				},
 			},
+			stackResources: map[string][]resourceValues{
+				"test-stack/id0": []resourceValues{
+					{
+						LogicalResourceId: "ProductionDatabase",
+						ResourceType:      "AWS::RDS::DBInstance",
+					},
+				},
+			},
 			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
 		},
 		{
@@ -650,6 +659,14 @@ func TestDeploy(t *testing.T) {
 					StackName:   aws.String("test-stack"),
 					StackId:     aws.String("test-stack/id1"),
 					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
+				},
+			},
+			stackResources: map[string][]resourceValues{
+				"test-stack/id1": []resourceValues{
+					{
+						LogicalResourceId: "ProductionDatabase",
+						ResourceType:      "AWS::RDS::DBInstance",
+					},
 				},
 			},
 			expectStackPolicy: `{"Statement":[{"Action":"Update:*","Effect":"Allow","NotResource":"LogicalResourceId/ProductionDatabase","Principal":"*"}]}`,
@@ -966,9 +983,24 @@ func TestDeploy(t *testing.T) {
 			if theseStackPolicies == nil {
 				theseStackPolicies = map[string]string{}
 			}
-			stackResource := cloudformation.StackResource{
-				LogicalResourceId: aws.String("ProductionDatabase"),
-				ResourceType:      aws.String("AWS::RDS::DBInstance"),
+
+			stackResourcesOutput := make(map[string]cloudformation.DescribeStackResourcesOutput)
+
+			for stackName, stackResources := range c.stackResources {
+
+				var cfStackResources []*cloudformation.StackResource
+				for _, stackResource := range stackResources {
+					cfStackResource := cloudformation.StackResource{
+						LogicalResourceId: &stackResource.LogicalResourceId,
+						ResourceType:      &stackResource.ResourceType,
+					}
+					cfStackResources = append(cfStackResources, &cfStackResource)
+				}
+
+				stackResourcesOutput[stackName] = cloudformation.DescribeStackResourcesOutput{
+					StackResources: cfStackResources,
+				}
+
 			}
 
 			cfnClient = mockCfn{
@@ -980,7 +1012,7 @@ func TestDeploy(t *testing.T) {
 				noUpdates:            c.noUpdates,
 				requiredParameters:   c.requiredParameters,
 				stacks:               &theseStacks,
-				stackResourcesOutput: map[string]cloudformation.DescribeStackResourcesOutput{"test-stack/id1": cloudformation.DescribeStackResourcesOutput{StackResources: []*cloudformation.StackResource{&stackResource}}},
+				stackResourcesOutput: stackResourcesOutput,
 				stackPolicies:        &theseStackPolicies,
 			}
 			stsClient = mockSTS{accountID: c.accountID}
@@ -996,7 +1028,11 @@ func TestDeploy(t *testing.T) {
 				TerminationProtection: c.terminationProtection,
 			}
 
-			output, err := thisStack.Deploy()
+			output, postActions, err := thisStack.Deploy()
+			for _, action := range postActions {
+				action()
+			}
+
 			switch {
 			case err == nil && c.expectFailure:
 				t.Errorf("%d, expected error, got success", i)

@@ -91,7 +91,7 @@ var deployCmd = &cobra.Command{
 			}
 		}
 
-		output, err := stack.Deploy()
+		output, _, err := stack.Deploy()
 		if err != nil {
 			log.Fatal(err, output)
 		}

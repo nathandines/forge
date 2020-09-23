@@ -97,7 +97,7 @@ func recursiveSetStackPolicy(stackPolicyBody *string, stackName *string) error {
 }
 
 // Deploy will create or update the stack (depending on its current state)
-func (s *Stack) Deploy() (output DeployOut, err error) {
+func (s *Stack) Deploy() (output DeployOut, postActions []func(), err error) {
 
 	var validateConfig cloudformation.ValidateTemplateInput
 
@@ -111,7 +111,7 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 
 	validationResult, err := cfnClient.ValidateTemplate(&validateConfig)
 	if err != nil {
-		return output, errors.Wrap(err, "Failed to Validate Template")
+		return output, postActions, errors.Wrap(err, "Failed to Validate Template")
 	}
 
 	// CAPABILITY_AUTO_EXPAND is not discovered during validation so add it here.  These lines may
@@ -124,7 +124,7 @@ func (s *Stack) Deploy() (output DeployOut, err error) {
 	if len(s.ParameterBodies) != 0 {
 		parsedParameters, err = parseParameters(s.ParameterBodies)
 		if err != nil {
-			return output, err
+			return output, postActions, err
 		}
 	}
 
@@ -170,7 +170,7 @@ TEMPLATE_PARAMETERS:
 
 		TemplateSummary, err := cfnClient.GetTemplateSummary(&templateSummaryConfig)
 		if err != nil {
-			return output, errors.Wrap(err, "Failed to get Template Summary")
+			return output, postActions, errors.Wrap(err, "Failed to get Template Summary")
 		}
 
 		type Metadata struct {
@@ -197,10 +197,10 @@ TEMPLATE_PARAMETERS:
 			case fmt.Sprintf("Stack with id %s does not exist", s.StackID),
 				fmt.Sprintf("Stack with id %s does not exist", s.StackName):
 			default:
-				return output, err
+				return output, postActions, err
 			}
 		} else {
-			return output, errors.Wrap(err, "Error in GetStackInfo")
+			return output, postActions, errors.Wrap(err, "Error in GetStackInfo")
 		}
 	}
 
@@ -208,7 +208,7 @@ TEMPLATE_PARAMETERS:
 	if s.TagsBody != "" {
 		tags, err = parseTags(s.TagsBody)
 		if err != nil {
-			return output, err
+			return output, postActions, err
 		}
 	} else if s.StackInfo != nil {
 		tags = s.StackInfo.Tags
@@ -218,7 +218,7 @@ TEMPLATE_PARAMETERS:
 	if s.CfnRoleName != "" {
 		roleARNString, err := roleARNFromName(s.CfnRoleName)
 		if err != nil {
-			return output, err
+			return output, postActions, err
 		}
 		roleARN = &roleARNString
 	}
@@ -243,8 +243,17 @@ TEMPLATE_PARAMETERS:
 
 	if s.StackInfo == nil {
 		createOut, err := cfnClient.CreateStack(&createConfig)
+
+		if s.StackPolicyBody != "" {
+			postActions = append(postActions, func(stackPolicyBody string, stackId string) func() {
+				return func() {
+					recursiveSetStackPolicy(&stackPolicyBody, &stackId)
+				}
+			}(s.StackPolicyBody, *createOut.StackId))
+		}
+
 		if err != nil {
-			return output, errors.Wrap(err, "Failed to Create Stack")
+			return output, postActions, errors.Wrap(err, "Failed to Create Stack")
 		}
 		s.StackID = *createOut.StackId
 
@@ -260,14 +269,14 @@ TEMPLATE_PARAMETERS:
 				},
 			)
 			if err != nil {
-				return output, errors.Wrap(err, "Failed to Update Termination Protection")
+				return output, postActions, errors.Wrap(err, "Failed to Update Termination Protection")
 			}
 		}
 
 		if s.StackPolicyBody != "" {
 			err = recursiveSetStackPolicy(&s.StackPolicyBody, &s.StackID)
 			if err != nil {
-				return output, errors.Wrap(err, "Failed to Set Stack Policy")
+				return output, postActions, errors.Wrap(err, "Failed to Set Stack Policy")
 			}
 		}
 
@@ -291,10 +300,10 @@ TEMPLATE_PARAMETERS:
 			if awsErr, ok := err.(awserr.Error); ok {
 				noUpdatesErr := "No updates are to be performed."
 				if awsErr.Message() == noUpdatesErr {
-					return DeployOut{Message: noUpdatesErr}, nil
+					return DeployOut{Message: noUpdatesErr}, postActions, nil
 				}
 			}
-			return output, errors.Wrap(err, "Failed to Update Stack")
+			return output, postActions, errors.Wrap(err, "Failed to Update Stack")
 		}
 	}
 	return
